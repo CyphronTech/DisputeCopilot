@@ -116,6 +116,57 @@ export async function testModelConfig(): Promise<{ ok: boolean; message: string 
   return r.json()
 }
 
+export interface ConnectorView {
+  configured: boolean
+  host: string | null
+  port: number | null
+  database: string | null
+  username: string | null
+  driver: string | null
+  lastTestedAt: string | null
+}
+
+export async function getConnectorConfig(): Promise<ConnectorView> {
+  const r = await fetch('/api/v1/setup/connector')
+  return r.json()
+}
+
+export async function saveConnectorConfig(req: { host: string; port: number; database: string; username: string; password: string; driver: string }): Promise<ConnectorView> {
+  const r = await fetch('/api/v1/setup/connector', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  })
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+
+export async function testConnectorConfig(): Promise<{ ok: boolean; message: string }> {
+  const r = await fetch('/api/v1/setup/connector/test', { method: 'POST' })
+  return r.json()
+}
+
+export async function discoverSchema(): Promise<Record<string, string[]>> {
+  const r = await fetch('/api/v1/setup/connector/schema')
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+
+export async function getAllowlist(): Promise<Record<string, string[]>> {
+  const r = await fetch('/api/v1/setup/connector/allowlist')
+  return r.json()
+}
+
+export async function saveAllowlist(allowlist: Record<string, string[]>): Promise<Record<string, string[]>> {
+  const r = await fetch('/api/v1/setup/connector/allowlist', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ allowlist }),
+  })
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+
 export async function getSetupConfig(): Promise<SetupConfig> {
   return mockSetup
 }

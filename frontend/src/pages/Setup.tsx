@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { getModelConfig, getSetupConfig, saveModelConfig, testModelConfig } from '../api/client'
+import {
+  discoverSchema, getAllowlist, getConnectorConfig, getModelConfig, getSetupConfig,
+  saveAllowlist, saveConnectorConfig, saveModelConfig, testConnectorConfig, testModelConfig,
+} from '../api/client'
 import { Icon } from '../components/Icon'
 import type { ModelProvider, SetupConfig } from '../api/types'
 
@@ -24,6 +27,20 @@ export function Setup() {
   const [testStatus, setTestStatus] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
+  const [dbHost, setDbHost] = useState('')
+  const [dbPort, setDbPort] = useState('5432')
+  const [dbDatabase, setDbDatabase] = useState('')
+  const [dbUsername, setDbUsername] = useState('')
+  const [dbPassword, setDbPassword] = useState('')
+  const [dbConfigured, setDbConfigured] = useState(false)
+  const [dbLastTested, setDbLastTested] = useState<string | null>(null)
+  const [dbStatus, setDbStatus] = useState<string | null>(null)
+  const [dbSaving, setDbSaving] = useState(false)
+  const [schema, setSchema] = useState<Record<string, string[]> | null>(null)
+  const [selectedColumns, setSelectedColumns] = useState<Record<string, Set<string>>>({})
+  const [discovering, setDiscovering] = useState(false)
+  const [savingAllowlist, setSavingAllowlist] = useState(false)
+
   useEffect(() => {
     getSetupConfig().then(setConfig)
     getModelConfig().then((m) => {
@@ -35,7 +52,81 @@ export function Setup() {
       setMaskedKey(m.maskedKey ?? null)
       setLastTested(m.lastTestedAt ?? null)
     })
+    getConnectorConfig().then((c) => {
+      setDbConfigured(c.configured)
+      if (c.configured) {
+        setDbHost(c.host ?? '')
+        setDbPort(String(c.port ?? 5432))
+        setDbDatabase(c.database ?? '')
+        setDbUsername(c.username ?? '')
+        setDbLastTested(c.lastTestedAt)
+      }
+    })
+    getAllowlist().then((allowlist) => {
+      if (Object.keys(allowlist).length > 0) {
+        setSelectedColumns(Object.fromEntries(Object.entries(allowlist).map(([t, cols]) => [t, new Set(cols)])))
+      }
+    })
   }, [])
+
+  async function handleSaveConnector() {
+    setDbSaving(true)
+    setDbStatus(null)
+    try {
+      await saveConnectorConfig({ host: dbHost, port: Number(dbPort), database: dbDatabase, username: dbUsername, password: dbPassword, driver: 'postgresql' })
+      setDbConfigured(true)
+      setDbPassword('')
+      setDbStatus('Saved')
+    } catch (e) {
+      setDbStatus(`Save failed: ${e}`)
+    } finally {
+      setDbSaving(false)
+    }
+  }
+
+  async function handleTestConnector() {
+    setDbStatus('Testing…')
+    const result = await testConnectorConfig()
+    setDbStatus(result.ok ? 'Connected' : `Failed: ${result.message}`)
+    if (result.ok) setDbLastTested(new Date().toISOString())
+  }
+
+  async function handleDiscoverSchema() {
+    setDiscovering(true)
+    setDbStatus(null)
+    try {
+      const discovered = await discoverSchema()
+      setSchema(discovered)
+    } catch (e) {
+      setDbStatus(`Discovery failed: ${e}`)
+    } finally {
+      setDiscovering(false)
+    }
+  }
+
+  function toggleColumn(table: string, column: string) {
+    setSelectedColumns((prev) => {
+      const next = { ...prev }
+      const current = new Set(next[table] ?? [])
+      if (current.has(column)) current.delete(column)
+      else current.add(column)
+      next[table] = current
+      return next
+    })
+  }
+
+  async function handleSaveAllowlist() {
+    setSavingAllowlist(true)
+    try {
+      const allowlist = Object.fromEntries(
+        Object.entries(selectedColumns).filter(([, cols]) => cols.size > 0).map(([t, cols]) => [t, [...cols]]),
+      )
+      await saveAllowlist(allowlist)
+      setDbStatus('Allowlist saved — the agent will use these tables/columns from now on')
+    } finally {
+      setSavingAllowlist(false)
+    }
+  }
 
   function handleProviderChange(next: ModelProvider) {
     setProvider(next)
@@ -138,25 +229,69 @@ export function Setup() {
               <h2>Merchant database connector</h2>
             </div>
             <p className="desc">
-              Not editable here yet — the table/column allowlist is currently set in the backend's
-              <span className="mono"> application.yml</span>, not through this UI. The schema-discovery
-              wizard described in the architecture docs hasn't been built.
+              Connect your store's database directly. Nothing here executes model-authored SQL —
+              the agent only ever reads the tables/columns you approve below.
+              {!dbConfigured && ' Leave this unset to keep using the built-in demo data.'}
             </p>
             <div className="row">
               <label>Host</label>
-              <input defaultValue={config.dbHost} readOnly disabled />
+              <input value={dbHost} onChange={(e) => setDbHost(e.target.value)} placeholder="db.yourstore.com" />
+            </div>
+            <div className="row">
+              <label>Port</label>
+              <input value={dbPort} onChange={(e) => setDbPort(e.target.value)} placeholder="5432" />
             </div>
             <div className="row">
               <label>Database</label>
-              <input defaultValue={config.dbDatabase} readOnly disabled />
+              <input value={dbDatabase} onChange={(e) => setDbDatabase(e.target.value)} placeholder="store_production" />
             </div>
             <div className="row">
               <label>Username</label>
-              <input defaultValue={config.dbUsername} readOnly disabled />
+              <input value={dbUsername} onChange={(e) => setDbUsername(e.target.value)} />
+            </div>
+            <div className="row">
+              <label>Password</label>
+              <input value={dbPassword} onChange={(e) => setDbPassword(e.target.value)} type="password" placeholder={dbConfigured ? '••••••••••••' : ''} />
             </div>
             <div className="row-actions">
-              <button className="btn btn-ghost btn-sm" disabled title="Not implemented yet">Test connection</button>
+              <div className={`status ${dbLastTested ? '' : 'pending'}`}>
+                <span className="dot" />
+                {dbStatus ?? (dbLastTested ? `Last tested ${new Date(dbLastTested).toLocaleString()}` : 'Not yet tested')}
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={handleSaveConnector} disabled={dbSaving || !dbHost || !dbDatabase || !dbUsername}>Save</button>
+              <button className="btn btn-ghost btn-sm" onClick={handleTestConnector} disabled={!dbConfigured}>Test connection</button>
+              <button className="btn btn-ghost btn-sm" onClick={handleDiscoverSchema} disabled={discovering}>
+                {discovering ? 'Scanning…' : 'Discover schema'}
+              </button>
             </div>
+
+            {schema && (
+              <div style={{ marginTop: 14, borderTop: '1px solid var(--hairline-strong)', paddingTop: 14 }}>
+                <p className="desc" style={{ marginTop: 0 }}>
+                  Check the tables/columns the agent is allowed to read. Nothing else in this database is ever queried.
+                </p>
+                {Object.entries(schema).map(([table, columns]) => (
+                  <div key={table} style={{ marginBottom: 10 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{table}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px' }}>
+                      {columns.map((col) => (
+                        <label key={col} style={{ fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedColumns[table]?.has(col) ?? false}
+                            onChange={() => toggleColumn(table, col)}
+                          />
+                          {col}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <button className="btn btn-primary btn-sm" onClick={handleSaveAllowlist} disabled={savingAllowlist}>
+                  {savingAllowlist ? 'Saving…' : 'Save allowlist'}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="card section">
