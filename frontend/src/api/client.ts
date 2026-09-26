@@ -167,6 +167,32 @@ export async function saveAllowlist(allowlist: Record<string, string[]>): Promis
   return r.json()
 }
 
+export interface ShopifyView {
+  configured: boolean
+  shopDomain: string | null
+  lastTestedAt: string | null
+}
+
+export async function getShopifyConfig(): Promise<ShopifyView> {
+  const r = await fetch('/api/v1/setup/shopify')
+  return r.json()
+}
+
+export async function saveShopifyConfig(req: { shopDomain: string; accessToken: string }): Promise<ShopifyView> {
+  const r = await fetch('/api/v1/setup/shopify', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  })
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+
+export async function testShopifyConfig(): Promise<{ ok: boolean; message: string }> {
+  const r = await fetch('/api/v1/setup/shopify/test', { method: 'POST' })
+  return r.json()
+}
+
 export async function getSetupConfig(): Promise<SetupConfig> {
   return mockSetup
 }

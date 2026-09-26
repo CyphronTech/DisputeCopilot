@@ -18,4 +18,9 @@ public class ApiExceptionHandler {
   public ResponseEntity<String> badRequest(IllegalArgumentException e) {
     return ResponseEntity.badRequest().body(e.getMessage());
   }
+
+  @ExceptionHandler(IllegalStateException.class)
+  public ResponseEntity<String> connectorFailure(IllegalStateException e) {
+    return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(e.getMessage());
+  }
 }

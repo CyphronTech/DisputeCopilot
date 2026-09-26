@@ -19,10 +19,13 @@ import org.springframework.stereotype.Component;
  * The allowlist and connection come from admin-approved setup (Setup > Merchant
  * database connector) if configured, saved via SchemaDiscoveryService / TableAllowlistStore.
  * Falls back to the YAML fixture allowlist for local demo/dev when nothing's been configured.
+ *
+ * Does not implement MerchantConnector directly — MerchantConnectorRouter picks between
+ * this and ShopifyMerchantConnector depending on which the admin has configured.
  */
 @Component
 @EnableConfigurationProperties(ConnectorAllowlistProperties.class)
-public class PostgresMerchantConnector implements MerchantConnector {
+public class PostgresMerchantConnector {
 
   private final SchemaDiscoveryService schemaDiscovery;
   private final TableAllowlistStore allowlistStore;
@@ -39,7 +42,6 @@ public class PostgresMerchantConnector implements MerchantConnector {
     return configured.isEmpty() ? fixtureAllowlist.allowlist() : configured;
   }
 
-  @Override
   public List<Map<String, Object>> readApprovedTable(String table, String orderId) {
     List<String> columns = allowlist().get(table);
     if (columns == null) {
@@ -71,7 +73,6 @@ public class PostgresMerchantConnector implements MerchantConnector {
     return rows;
   }
 
-  @Override
   public List<String> approvedTables() {
     return List.copyOf(allowlist().keySet());
   }

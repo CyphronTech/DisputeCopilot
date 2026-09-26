@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
-  discoverSchema, getAllowlist, getConnectorConfig, getModelConfig, getSetupConfig,
-  saveAllowlist, saveConnectorConfig, saveModelConfig, testConnectorConfig, testModelConfig,
+  discoverSchema, getAllowlist, getConnectorConfig, getModelConfig, getSetupConfig, getShopifyConfig,
+  saveAllowlist, saveConnectorConfig, saveModelConfig, saveShopifyConfig, testConnectorConfig, testModelConfig, testShopifyConfig,
 } from '../api/client'
 import { Icon } from '../components/Icon'
 import type { ModelProvider, SetupConfig } from '../api/types'
@@ -41,6 +41,14 @@ export function Setup() {
   const [discovering, setDiscovering] = useState(false)
   const [savingAllowlist, setSavingAllowlist] = useState(false)
 
+  const [connectorType, setConnectorType] = useState<'database' | 'shopify'>('database')
+  const [shopDomain, setShopDomain] = useState('')
+  const [shopifyToken, setShopifyToken] = useState('')
+  const [shopifyConfigured, setShopifyConfigured] = useState(false)
+  const [shopifyLastTested, setShopifyLastTested] = useState<string | null>(null)
+  const [shopifyStatus, setShopifyStatus] = useState<string | null>(null)
+  const [shopifySaving, setShopifySaving] = useState(false)
+
   useEffect(() => {
     getSetupConfig().then(setConfig)
     getModelConfig().then((m) => {
@@ -67,7 +75,37 @@ export function Setup() {
         setSelectedColumns(Object.fromEntries(Object.entries(allowlist).map(([t, cols]) => [t, new Set(cols)])))
       }
     })
+    getShopifyConfig().then((s) => {
+      setShopifyConfigured(s.configured)
+      if (s.configured) {
+        setConnectorType('shopify')
+        setShopDomain((s.shopDomain ?? '').replace('.myshopify.com', ''))
+        setShopifyLastTested(s.lastTestedAt)
+      }
+    })
   }, [])
+
+  async function handleSaveShopify() {
+    setShopifySaving(true)
+    setShopifyStatus(null)
+    try {
+      await saveShopifyConfig({ shopDomain, accessToken: shopifyToken })
+      setShopifyConfigured(true)
+      setShopifyToken('')
+      setShopifyStatus('Saved')
+    } catch (e) {
+      setShopifyStatus(`Save failed: ${e}`)
+    } finally {
+      setShopifySaving(false)
+    }
+  }
+
+  async function handleTestShopify() {
+    setShopifyStatus('Testing…')
+    const result = await testShopifyConfig()
+    setShopifyStatus(result.ok ? 'Connected' : `Failed: ${result.message}`)
+    if (result.ok) setShopifyLastTested(new Date().toISOString())
+  }
 
   async function handleSaveConnector() {
     setDbSaving(true)
@@ -226,6 +264,61 @@ export function Setup() {
               <div className="section-icon">
                 <Icon name="db" />
               </div>
+              <h2>Connect your store</h2>
+            </div>
+            <p className="desc">Choose how DisputeCopilot reads your order data.</p>
+            <div className="row">
+              <label>Store type</label>
+              <select value={connectorType} onChange={(e) => setConnectorType(e.target.value as 'database' | 'shopify')}>
+                <option value="database">Direct database (Postgres)</option>
+                <option value="shopify">Shopify</option>
+              </select>
+            </div>
+          </div>
+
+          {connectorType === 'shopify' && (
+            <div className="card section">
+              <div className="section-head">
+                <div className="section-icon">
+                  <Icon name="db" />
+                </div>
+                <h2>Shopify</h2>
+              </div>
+              <p className="desc">
+                In your Shopify admin: Settings → Apps and sales channels → Develop apps → Create an app →
+                give it read access to Orders → install it → copy the Admin API access token here.
+                The AI can only ever read orders, shipping, and refund info — it can never change anything in your store.
+              </p>
+              <div className="row">
+                <label>Store domain</label>
+                <input value={shopDomain} onChange={(e) => setShopDomain(e.target.value)} placeholder="your-store" />
+              </div>
+              <div className="row">
+                <label>Access token</label>
+                <input
+                  value={shopifyToken}
+                  onChange={(e) => setShopifyToken(e.target.value)}
+                  type="password"
+                  placeholder={shopifyConfigured ? '••••••••••••' : 'shpat_...'}
+                />
+              </div>
+              <div className="row-actions">
+                <div className={`status ${shopifyLastTested ? '' : 'pending'}`}>
+                  <span className="dot" />
+                  {shopifyStatus ?? (shopifyLastTested ? `Last tested ${new Date(shopifyLastTested).toLocaleString()}` : 'Not yet tested')}
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={handleSaveShopify} disabled={shopifySaving || !shopDomain}>Save</button>
+                <button className="btn btn-ghost btn-sm" onClick={handleTestShopify} disabled={!shopifyConfigured}>Test connection</button>
+              </div>
+            </div>
+          )}
+
+          {connectorType === 'database' && (
+          <div className="card section">
+            <div className="section-head">
+              <div className="section-icon">
+                <Icon name="db" />
+              </div>
               <h2>Merchant database connector</h2>
             </div>
             <p className="desc">
@@ -293,6 +386,7 @@ export function Setup() {
               </div>
             )}
           </div>
+          )}
 
           <div className="card section">
             <div className="section-head">
