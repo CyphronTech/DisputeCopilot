@@ -4,6 +4,8 @@ import com.disputecopilot.audit.AuditRecorder;
 import com.disputecopilot.casework.api.ReportDtos.DraftReport;
 import com.disputecopilot.casework.api.ReportDtos.EvidenceIndexEntry;
 import com.disputecopilot.casework.domain.CaseState;
+import com.disputecopilot.casework.persistence.CaseCitationEntity;
+import com.disputecopilot.casework.persistence.CaseCitationJpaRepository;
 import com.disputecopilot.casework.persistence.CaseEntity;
 import com.disputecopilot.casework.persistence.CaseJpaRepository;
 import com.disputecopilot.casework.persistence.EvidenceItemEntity;
@@ -30,12 +32,14 @@ public class ReportService {
   private final EvidenceItemJpaRepository evidenceItems;
   private final ModelConfigJpaRepository modelConfigs;
   private final AuditRecorder audit;
+  private final CaseCitationJpaRepository citations;
 
-  public ReportService(CaseJpaRepository cases, EvidenceItemJpaRepository evidenceItems, ModelConfigJpaRepository modelConfigs, AuditRecorder audit) {
+  public ReportService(CaseJpaRepository cases, EvidenceItemJpaRepository evidenceItems, ModelConfigJpaRepository modelConfigs, AuditRecorder audit, CaseCitationJpaRepository citations) {
     this.cases = cases;
     this.evidenceItems = evidenceItems;
     this.modelConfigs = modelConfigs;
     this.audit = audit;
+    this.citations = citations;
   }
 
   public DraftReport get(String caseId) {
@@ -62,12 +66,21 @@ public class ReportService {
         + (entity.getCaveat() == null ? "" : " (" + entity.getCaveat() + ")");
     String model = modelConfigs.findById(Boolean.TRUE).map(c -> c.getProvider() + "/" + c.getModel()).orElse("not configured");
     boolean approved = entity.getState() == CaseState.APPROVED || entity.getState() == CaseState.EXPORTED;
+
+    List<CaseCitationEntity> caseCitations = citations.findByCaseId(entity.getId());
+    String policyCitationsSummary = caseCitations.isEmpty()
+        ? "No policy excerpt was found relevant to this case's evidence — recommendation is evidence-completeness only, not policy-grounded."
+        : caseCitations.stream()
+            .map(c -> c.getTitle() + " v" + c.getVersion() + ": \"" + c.getQuote() + "\"")
+            .reduce((a, b) -> a + "\n" + b).orElse("");
+    String policyVersion = caseCitations.isEmpty() ? "N/A — no policy excerpt matched" : caseCitations.get(0).getVersion();
+
     String content = entity.getId() + "|" + entity.getRecommendation() + "|" + entity.getConfidence() + "|" + index;
     return new DraftReport(
         entity.getId().toString(), entity.getOrderId(), 1, approved, caseSummary, index,
-        "No policy library is ingested yet — this recommendation is evidence-completeness only, not policy-grounded.",
-        "Evidence was read only from the merchant's allowlisted tables listed in architecture.md; no manual verification has occurred.",
-        entity.getRecommendation(), entity.getConfidence(), "N/A — no policy documents ingested", model, sha256(content));
+        policyCitationsSummary,
+        "Evidence was read only from the merchant's allowlisted tables listed in architecture.md; policy retrieval is keyword-based, not semantic search, and no manual verification has occurred.",
+        entity.getRecommendation(), entity.getConfidence(), policyVersion, model, sha256(content));
   }
 
   private String sha256(String input) {

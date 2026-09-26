@@ -3,7 +3,10 @@ package com.disputecopilot.casework.service;
 import com.disputecopilot.casework.api.CaseDtos.CaseDetail;
 import com.disputecopilot.casework.api.CaseDtos.CaseSummary;
 import com.disputecopilot.casework.api.CaseDtos.EvidenceItem;
+import com.disputecopilot.casework.api.CaseDtos.PolicyCitation;
 import com.disputecopilot.casework.domain.CaseState;
+import com.disputecopilot.casework.persistence.CaseCitationEntity;
+import com.disputecopilot.casework.persistence.CaseCitationJpaRepository;
 import com.disputecopilot.casework.persistence.CaseEntity;
 import com.disputecopilot.casework.persistence.CaseJpaRepository;
 import com.disputecopilot.casework.persistence.ConnectorQueryAuditEntity;
@@ -32,6 +35,7 @@ public class CaseIntakeService {
   private final MerchantConnector connector;
   private final EvidenceReviewAgent reviewAgent;
   private final AuditRecorder audit;
+  private final CaseCitationJpaRepository citations;
 
   public CaseIntakeService(
       CaseJpaRepository cases,
@@ -39,13 +43,15 @@ public class CaseIntakeService {
       ConnectorQueryAuditJpaRepository queryAudit,
       MerchantConnector connector,
       EvidenceReviewAgent reviewAgent,
-      AuditRecorder audit) {
+      AuditRecorder audit,
+      CaseCitationJpaRepository citations) {
     this.cases = cases;
     this.evidenceItems = evidenceItems;
     this.queryAudit = queryAudit;
     this.connector = connector;
     this.reviewAgent = reviewAgent;
     this.audit = audit;
+    this.citations = citations;
   }
 
   @Transactional
@@ -76,6 +82,9 @@ public class CaseIntakeService {
       CaseState nextState = review.recommendation().equals("MANUAL_REVIEW_REQUIRED")
           ? CaseState.MANUAL_REVIEW_REQUIRED : CaseState.AWAITING_HUMAN_APPROVAL;
       caseEntity.applyReview(review.recommendation(), review.confidence(), review.caveat(), nextState);
+      for (EvidenceReviewAgent.Citation citation : review.citations()) {
+        citations.save(new CaseCitationEntity(UUID.randomUUID(), caseEntity.getId(), UUID.fromString(citation.documentId()), citation.title(), citation.version(), citation.quote()));
+      }
       if (nextState == CaseState.MANUAL_REVIEW_REQUIRED) {
         audit.record("Routed to manual review", review.caveat() == null ? "agent could not reach a confident recommendation" : review.caveat(), caseEntity.getOrderId(), "System", true, "alert", "warn");
       } else {
@@ -107,6 +116,12 @@ public class CaseIntakeService {
     return toDetail(entity, evidenceItems.findByCaseId(entity.getId()));
   }
 
+  private List<PolicyCitation> toCitations(UUID caseId) {
+    return citations.findByCaseId(caseId).stream()
+        .map(c -> new PolicyCitation(c.getDocumentId().toString(), c.getTitle(), c.getVersion(), 1, c.getQuote()))
+        .toList();
+  }
+
   public List<CaseSummary> list() {
     return cases.findAll().stream().map(this::toSummary).toList();
   }
@@ -119,6 +134,6 @@ public class CaseIntakeService {
     List<EvidenceItem> evidence = items.stream()
         .map(i -> new EvidenceItem(i.getObservedAt(), i.getTitle(), i.getDescription(), i.getSourceRef(), i.getKind()))
         .toList();
-    return new CaseDetail(e.getId().toString(), e.getOrderId(), e.getCustomerName(), e.getState().name(), evidence, List.of(), e.getRecommendation(), e.getConfidence(), e.getCaveat());
+    return new CaseDetail(e.getId().toString(), e.getOrderId(), e.getCustomerName(), e.getState().name(), evidence, toCitations(e.getId()), e.getRecommendation(), e.getConfidence(), e.getCaveat());
   }
 }

@@ -2,7 +2,7 @@
 // Cases now call the real backend. Everything else still resolves mock data until
 // its backend endpoint exists — swap the commented fetch() line in when it does.
 import type { AuditEvent, CaseDetail, CaseMetrics, CaseSummary, DraftReport, PolicyDocument, SaveModelConfigRequest, SetupConfig } from './types'
-import { mockPolicies, mockSetup } from './mockData'
+import { mockSetup } from './mockData'
 
 export async function login(email: string, password: string): Promise<void> {
   const r = await fetch('/api/v1/session', {
@@ -58,7 +58,7 @@ export async function approveReport(caseId: string): Promise<DraftReport> {
 }
 
 export async function getPolicies(): Promise<PolicyDocument[]> {
-  return mockPolicies
+  return fetch('/api/v1/policies').then((r) => r.json())
 }
 
 export async function getAuditEvents(): Promise<AuditEvent[]> {

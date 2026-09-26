@@ -15,9 +15,11 @@ public final class CaseDtos {
 
   public record EvidenceItem(String observedAt, String title, String description, String sourceRef, String kind) {}
 
+  public record PolicyCitation(String documentId, String title, String version, int page, String quote) {}
+
   public record CaseDetail(
       String caseId, String orderId, String customerName, String state,
-      List<EvidenceItem> evidence, List<Object> citations,
+      List<EvidenceItem> evidence, List<PolicyCitation> citations,
       String recommendation, Double confidence, String caveat) {}
 
   public record CaseMetrics(long openCases, long awaitingApproval, long manualReview, double exportedWithoutEditsPct) {}
