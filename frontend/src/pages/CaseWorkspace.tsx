@@ -70,6 +70,15 @@ export function CaseWorkspace() {
                 <strong>{item.title}</strong>
                 <span className="desc">{item.description}</span>
                 <span className="t-source">{item.sourceRef}</span>
+                {item.attachmentUrl && (
+                  <a href={item.attachmentUrl} target="_blank" rel="noreferrer" style={{ display: 'block', marginTop: 8 }}>
+                    <img
+                      src={item.attachmentUrl}
+                      alt={`Photo evidence for ${item.title}`}
+                      style={{ maxWidth: 220, maxHeight: 160, borderRadius: 8, border: '1px solid var(--hairline-strong)', display: 'block' }}
+                    />
+                  </a>
+                )}
               </div>
             </div>
           ))}

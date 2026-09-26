@@ -105,11 +105,17 @@ public class CaseIntakeService {
     }
     Map<String, Object> row = rows.get(0);
     String kind = table.equals("communications") ? "communication" : "ok";
-    return new EvidenceItemEntity(UUID.randomUUID(), caseId, kind, table, describe(row), table + "." + row.keySet().iterator().next(), null);
+    String attachmentUrl = row.entrySet().stream()
+        .filter(e -> e.getKey().toLowerCase().contains("url") && e.getValue() != null)
+        .map(e -> String.valueOf(e.getValue()))
+        .findFirst().orElse(null);
+    return new EvidenceItemEntity(UUID.randomUUID(), caseId, kind, table, describe(row), table + "." + row.keySet().iterator().next(), null, attachmentUrl);
   }
 
   private String describe(Map<String, Object> row) {
-    return row.entrySet().stream().map(e -> e.getKey() + "=" + e.getValue()).reduce((a, b) -> a + ", " + b).orElse("");
+    return row.entrySet().stream()
+        .filter(e -> !e.getKey().toLowerCase().contains("url"))
+        .map(e -> e.getKey() + "=" + e.getValue()).reduce((a, b) -> a + ", " + b).orElse("");
   }
 
   public CaseDetail get(String caseId) {
@@ -148,7 +154,7 @@ public class CaseIntakeService {
 
   private CaseDetail toDetail(CaseEntity e, List<EvidenceItemEntity> items) {
     List<EvidenceItem> evidence = items.stream()
-        .map(i -> new EvidenceItem(i.getObservedAt(), i.getTitle(), i.getDescription(), i.getSourceRef(), i.getKind()))
+        .map(i -> new EvidenceItem(i.getObservedAt(), i.getTitle(), i.getDescription(), i.getSourceRef(), i.getKind(), i.getAttachmentUrl()))
         .toList();
     return new CaseDetail(e.getId().toString(), e.getOrderId(), e.getCustomerName(), e.getState().name(), evidence, toCitations(e.getId()), e.getRecommendation(), e.getConfidence(), e.getCaveat(), e.getSummary());
   }

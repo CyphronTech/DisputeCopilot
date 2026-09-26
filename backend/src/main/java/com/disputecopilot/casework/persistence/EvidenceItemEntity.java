@@ -17,10 +17,15 @@ public class EvidenceItemEntity {
   private String description;
   private String sourceRef;
   private String observedAt;
+  private String attachmentUrl;
 
   protected EvidenceItemEntity() {}
 
   public EvidenceItemEntity(UUID id, UUID caseId, String kind, String title, String description, String sourceRef, String observedAt) {
+    this(id, caseId, kind, title, description, sourceRef, observedAt, null);
+  }
+
+  public EvidenceItemEntity(UUID id, UUID caseId, String kind, String title, String description, String sourceRef, String observedAt, String attachmentUrl) {
     this.id = id;
     this.caseId = caseId;
     this.kind = kind;
@@ -28,6 +33,7 @@ public class EvidenceItemEntity {
     this.description = description;
     this.sourceRef = sourceRef;
     this.observedAt = observedAt;
+    this.attachmentUrl = attachmentUrl;
   }
 
   public UUID getId() { return id; }
@@ -37,4 +43,5 @@ public class EvidenceItemEntity {
   public String getDescription() { return description; }
   public String getSourceRef() { return sourceRef; }
   public String getObservedAt() { return observedAt; }
+  public String getAttachmentUrl() { return attachmentUrl; }
 }

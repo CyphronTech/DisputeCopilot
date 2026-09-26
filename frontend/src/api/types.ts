@@ -40,6 +40,7 @@ export interface EvidenceItem {
   description: string
   sourceRef: string
   kind: 'ok' | 'gap' | 'communication'
+  attachmentUrl: string | null
 }
 
 export interface PolicyCitation {

@@ -15,7 +15,7 @@ public final class CaseDtos {
       String caseId, String orderId, String customerName, String customerEmail,
       String state, String recommendation, Double confidence, String summary, Instant createdAt) {}
 
-  public record EvidenceItem(String observedAt, String title, String description, String sourceRef, String kind) {}
+  public record EvidenceItem(String observedAt, String title, String description, String sourceRef, String kind, String attachmentUrl) {}
 
   public record PolicyCitation(String documentId, String title, String version, int page, String quote) {}
 

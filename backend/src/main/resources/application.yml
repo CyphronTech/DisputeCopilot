@@ -25,6 +25,6 @@ connector:
   allowlist:
     orders: [order_id, customer_name, customer_email, product_name, created_at, currency, amount]
     payments: [order_id, status, processor_ref, paid_at]
-    fulfillment: [order_id, carrier, awb, shipped_at]
+    fulfillment: [order_id, carrier, awb, shipped_at, proof_of_delivery_url]
     refunds: [order_id, status, amount, decided_at]
-    communications: [order_id, occurred_at, body]
+    communications: [order_id, occurred_at, body, attachment_url]
