@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import {
-  discoverSchema, getAllowlist, getConnectorConfig, getModelConfig, getSetupConfig, getShopifyConfig,
-  saveAllowlist, saveConnectorConfig, saveModelConfig, saveShopifyConfig, testConnectorConfig, testModelConfig, testShopifyConfig,
+  discoverSchema, getAllowlist, getConnectorConfig, getModelConfig, getSetupConfig, getShopifyConfig, getTableRoleMapping,
+  saveAllowlist, saveConnectorConfig, saveModelConfig, saveShopifyConfig, saveTableRoleMapping, suggestTableMapping,
+  testConnectorConfig, testModelConfig, testShopifyConfig,
 } from '../api/client'
+import type { RoleMapping } from '../api/client'
 import { Icon } from '../components/Icon'
 import type { ModelProvider, SetupConfig } from '../api/types'
 
 const TABS = ['Integrations', 'Users & roles', 'Deployment']
+
+const ROLES = ['orders', 'payments', 'fulfillment', 'refunds', 'communications'] as const
 
 const PROVIDER_DEFAULTS: Record<ModelProvider, { label: string; baseUrl: string; model: string }> = {
   anthropic: { label: 'Anthropic (Claude)', baseUrl: 'https://api.anthropic.com', model: 'claude-3-5-haiku-20241022' },
@@ -40,6 +44,10 @@ export function Setup() {
   const [selectedColumns, setSelectedColumns] = useState<Record<string, Set<string>>>({})
   const [discovering, setDiscovering] = useState(false)
   const [savingAllowlist, setSavingAllowlist] = useState(false)
+  const [roleMapping, setRoleMapping] = useState<Record<string, RoleMapping>>({})
+  const [suggestingMapping, setSuggestingMapping] = useState(false)
+  const [savingMapping, setSavingMapping] = useState(false)
+  const [mappingStatus, setMappingStatus] = useState<string | null>(null)
 
   const [connectorType, setConnectorType] = useState<'database' | 'shopify'>('database')
   const [shopDomain, setShopDomain] = useState('')
@@ -75,6 +83,7 @@ export function Setup() {
         setSelectedColumns(Object.fromEntries(Object.entries(allowlist).map(([t, cols]) => [t, new Set(cols)])))
       }
     })
+    getTableRoleMapping().then(setRoleMapping)
     getShopifyConfig().then((s) => {
       setShopifyConfigured(s.configured)
       if (s.configured) {
@@ -163,6 +172,46 @@ export function Setup() {
       setDbStatus('Allowlist saved — the agent will use these tables/columns from now on')
     } finally {
       setSavingAllowlist(false)
+    }
+  }
+
+  async function handleSuggestMapping() {
+    setSuggestingMapping(true)
+    setMappingStatus(null)
+    try {
+      const suggested = await suggestTableMapping()
+      setRoleMapping(suggested)
+      setMappingStatus('AI suggestion filled in below — review each one before saving.')
+    } catch (e) {
+      setMappingStatus(`Suggestion failed: ${e}`)
+    } finally {
+      setSuggestingMapping(false)
+    }
+  }
+
+  function updateRoleMapping(role: string, field: 'tableName' | 'orderIdColumn', value: string) {
+    setRoleMapping((prev) => ({
+      ...prev,
+      [role]: {
+        tableName: field === 'tableName' ? value : (prev[role]?.tableName ?? ''),
+        orderIdColumn: field === 'orderIdColumn' ? value : (field === 'tableName' ? '' : (prev[role]?.orderIdColumn ?? '')),
+      },
+    }))
+  }
+
+  async function handleSaveMapping() {
+    setSavingMapping(true)
+    try {
+      const mapping = Object.fromEntries(
+        Object.entries(roleMapping).filter(([, m]) => m.tableName && m.orderIdColumn),
+      )
+      const saved = await saveTableRoleMapping(mapping)
+      setRoleMapping(saved)
+      setMappingStatus('Mapping saved — the agent will use your table/column names from now on.')
+    } catch (e) {
+      setMappingStatus(`Save failed: ${e}`)
+    } finally {
+      setSavingMapping(false)
     }
   }
 
@@ -383,6 +432,55 @@ export function Setup() {
                 <button className="btn btn-primary btn-sm" onClick={handleSaveAllowlist} disabled={savingAllowlist}>
                   {savingAllowlist ? 'Saving…' : 'Save allowlist'}
                 </button>
+              </div>
+            )}
+
+            {schema && (
+              <div style={{ marginTop: 18, borderTop: '1px solid var(--hairline-strong)', paddingTop: 14 }}>
+                <p className="desc" style={{ marginTop: 0 }}>
+                  Tell the app which of your tables play which role, and which column holds the order ID, so it
+                  knows how to read your schema even if your table names don't match ours.
+                </p>
+                <button className="btn btn-ghost btn-sm" onClick={handleSuggestMapping} disabled={suggestingMapping} style={{ marginBottom: 12 }}>
+                  {suggestingMapping ? 'Asking AI…' : 'Suggest mapping with AI'}
+                </button>
+                {ROLES.map((role) => (
+                  <div className="row" key={role}>
+                    <label style={{ textTransform: 'capitalize' }}>{role}</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <select
+                        value={roleMapping[role]?.tableName ?? ''}
+                        onChange={(e) => updateRoleMapping(role, 'tableName', e.target.value)}
+                        style={{ flex: 1, minWidth: 0 }}
+                      >
+                        <option value="">— none —</option>
+                        {Object.keys(schema).map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={roleMapping[role]?.orderIdColumn ?? ''}
+                        onChange={(e) => updateRoleMapping(role, 'orderIdColumn', e.target.value)}
+                        disabled={!roleMapping[role]?.tableName}
+                        style={{ flex: 1, minWidth: 0 }}
+                      >
+                        <option value="">order-id column</option>
+                        {(schema[roleMapping[role]?.tableName ?? ''] ?? []).map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+                <div className="row-actions">
+                  <div className={`status ${mappingStatus ? '' : 'pending'}`}>
+                    <span className="dot" />
+                    {mappingStatus ?? 'AI suggestions are a starting point — review before saving'}
+                  </div>
+                  <button className="btn btn-primary btn-sm" onClick={handleSaveMapping} disabled={savingMapping}>
+                    {savingMapping ? 'Saving…' : 'Save mapping'}
+                  </button>
+                </div>
               </div>
             )}
           </div>

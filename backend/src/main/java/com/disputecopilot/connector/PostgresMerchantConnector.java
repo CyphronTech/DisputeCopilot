@@ -20,6 +20,12 @@ import org.springframework.stereotype.Component;
  * database connector) if configured, saved via SchemaDiscoveryService / TableAllowlistStore.
  * Falls back to the YAML fixture allowlist for local demo/dev when nothing's been configured.
  *
+ * Callers pass a role name (orders/payments/fulfillment/refunds/communications), not a raw
+ * table name — TableRoleMappingStore resolves that to the merchant's actual table and
+ * order-id column, so a real deployment isn't forced to use the fixture's exact schema
+ * naming. If no role mapping has been saved, the role is used as the literal table name and
+ * "order_id" as the join column, matching the original fixture-only behavior.
+ *
  * Does not implement MerchantConnector directly — MerchantConnectorRouter picks between
  * this and ShopifyMerchantConnector depending on which the admin has configured.
  */
@@ -27,14 +33,19 @@ import org.springframework.stereotype.Component;
 @EnableConfigurationProperties(ConnectorAllowlistProperties.class)
 public class PostgresMerchantConnector {
 
+  private static final List<String> ROLES = List.of("orders", "payments", "fulfillment", "refunds", "communications");
+
   private final SchemaDiscoveryService schemaDiscovery;
   private final TableAllowlistStore allowlistStore;
   private final ConnectorAllowlistProperties fixtureAllowlist;
+  private final TableRoleMappingStore roleMappingStore;
 
-  public PostgresMerchantConnector(SchemaDiscoveryService schemaDiscovery, TableAllowlistStore allowlistStore, ConnectorAllowlistProperties fixtureAllowlist) {
+  public PostgresMerchantConnector(SchemaDiscoveryService schemaDiscovery, TableAllowlistStore allowlistStore,
+      ConnectorAllowlistProperties fixtureAllowlist, TableRoleMappingStore roleMappingStore) {
     this.schemaDiscovery = schemaDiscovery;
     this.allowlistStore = allowlistStore;
     this.fixtureAllowlist = fixtureAllowlist;
+    this.roleMappingStore = roleMappingStore;
   }
 
   private Map<String, List<String>> allowlist() {
@@ -42,13 +53,17 @@ public class PostgresMerchantConnector {
     return configured.isEmpty() ? fixtureAllowlist.allowlist() : configured;
   }
 
-  public List<Map<String, Object>> readApprovedTable(String table, String orderId) {
+  public List<Map<String, Object>> readApprovedTable(String role, String orderId) {
+    TableRoleMappingStore.RoleMapping mapped = roleMappingStore.load().get(role);
+    String table = mapped != null ? mapped.tableName() : role;
+    String orderIdColumn = mapped != null ? mapped.orderIdColumn() : "order_id";
+
     List<String> columns = allowlist().get(table);
     if (columns == null) {
       throw new IllegalArgumentException("Table not on the approved allowlist: " + table);
     }
     String columnList = String.join(", ", columns);
-    String sql = "select " + columnList + " from " + table + " where order_id = ? limit 1";
+    String sql = "select " + columnList + " from " + table + " where " + orderIdColumn + " = ? limit 1";
     try (Connection connection = schemaDiscovery.openConnection();
         PreparedStatement statement = connection.prepareStatement(sql)) {
       statement.setString(1, orderId);
@@ -73,7 +88,17 @@ public class PostgresMerchantConnector {
     return rows;
   }
 
+  /** Each role falls back to its own literal table name independently, so an admin mapping
+   *  only some roles doesn't silently drop evidence collection for the rest. */
   public List<String> approvedTables() {
-    return List.copyOf(allowlist().keySet());
+    Map<String, TableRoleMappingStore.RoleMapping> roleMapping = roleMappingStore.load();
+    Map<String, List<String>> allowlist = allowlist();
+    List<String> result = new ArrayList<>();
+    for (String role : ROLES) {
+      TableRoleMappingStore.RoleMapping mapped = roleMapping.get(role);
+      String table = mapped != null ? mapped.tableName() : role;
+      if (allowlist.containsKey(table)) result.add(role);
+    }
+    return result;
   }
 }

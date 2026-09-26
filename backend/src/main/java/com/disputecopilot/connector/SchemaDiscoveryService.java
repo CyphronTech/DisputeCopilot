@@ -24,7 +24,8 @@ public class SchemaDiscoveryService {
   // accidentally allowlist them for agent reads — this list grows if new app tables are added.
   private static final Set<String> APP_OWNED_TABLES = Set.of(
       "case_record", "evidence_item", "connector_query_audit", "audit_event", "policy_document",
-      "case_citation", "model_config", "merchant_db_config", "table_allowlist_entry", "flyway_schema_history");
+      "case_citation", "model_config", "merchant_db_config", "table_allowlist_entry", "flyway_schema_history",
+      "shopify_config", "table_role_mapping");
 
   private final MerchantDbConfigJpaRepository configRepository;
   private final CryptoUtil crypto;

@@ -21,15 +21,20 @@ public class ConnectorSetupController {
   private final CryptoUtil crypto;
   private final SchemaDiscoveryService schemaDiscovery;
   private final TableAllowlistStore allowlistStore;
+  private final TableRoleMappingStore roleMappingStore;
+  private final SchemaMappingSuggester mappingSuggester;
   private final AuditRecorder audit;
 
   public ConnectorSetupController(
       MerchantDbConfigJpaRepository configRepository, CryptoUtil crypto,
-      SchemaDiscoveryService schemaDiscovery, TableAllowlistStore allowlistStore, AuditRecorder audit) {
+      SchemaDiscoveryService schemaDiscovery, TableAllowlistStore allowlistStore,
+      TableRoleMappingStore roleMappingStore, SchemaMappingSuggester mappingSuggester, AuditRecorder audit) {
     this.configRepository = configRepository;
     this.crypto = crypto;
     this.schemaDiscovery = schemaDiscovery;
     this.allowlistStore = allowlistStore;
+    this.roleMappingStore = roleMappingStore;
+    this.mappingSuggester = mappingSuggester;
     this.audit = audit;
   }
 
@@ -88,5 +93,30 @@ public class ConnectorSetupController {
     int tableCount = request.allowlist().size();
     audit.record("Connector allowlist updated", tableCount + " tables approved", null, "Admin", false, "setup", "neutral");
     return allowlistStore.load();
+  }
+
+  @GetMapping("/suggest-mapping")
+  public Map<String, TableRoleMappingStore.RoleMapping> suggestMapping() throws Exception {
+    return mappingSuggester.suggest(schemaDiscovery.discover());
+  }
+
+  @GetMapping("/role-mapping")
+  public Map<String, TableRoleMappingStore.RoleMapping> getRoleMapping() {
+    return roleMappingStore.load();
+  }
+
+  @PutMapping("/role-mapping")
+  public Map<String, TableRoleMappingStore.RoleMapping> saveRoleMapping(@RequestBody Map<String, TableRoleMappingStore.RoleMapping> mapping) throws Exception {
+    Map<String, List<String>> schema = schemaDiscovery.discover();
+    Map<String, TableRoleMappingStore.RoleMapping> validated = new java.util.LinkedHashMap<>();
+    for (var entry : mapping.entrySet()) {
+      List<String> columns = schema.get(entry.getValue().tableName());
+      if (columns != null && columns.contains(entry.getValue().orderIdColumn())) {
+        validated.put(entry.getKey(), entry.getValue());
+      }
+    }
+    roleMappingStore.save(validated);
+    audit.record("Table role mapping updated", validated.size() + " roles mapped", null, "Admin", false, "setup", "neutral");
+    return roleMappingStore.load();
   }
 }

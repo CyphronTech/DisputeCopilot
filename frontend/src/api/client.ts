@@ -167,6 +167,32 @@ export async function saveAllowlist(allowlist: Record<string, string[]>): Promis
   return r.json()
 }
 
+export interface RoleMapping {
+  tableName: string
+  orderIdColumn: string
+}
+
+export async function suggestTableMapping(): Promise<Record<string, RoleMapping>> {
+  const r = await fetch('/api/v1/setup/connector/suggest-mapping')
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+
+export async function getTableRoleMapping(): Promise<Record<string, RoleMapping>> {
+  const r = await fetch('/api/v1/setup/connector/role-mapping')
+  return r.json()
+}
+
+export async function saveTableRoleMapping(mapping: Record<string, RoleMapping>): Promise<Record<string, RoleMapping>> {
+  const r = await fetch('/api/v1/setup/connector/role-mapping', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(mapping),
+  })
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+
 export interface ShopifyView {
   configured: boolean
   shopDomain: string | null
