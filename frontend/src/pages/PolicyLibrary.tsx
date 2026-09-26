@@ -4,7 +4,14 @@ import { Icon } from '../components/Icon'
 import { Tag } from '../components/Tag'
 import type { PolicyDocument, PolicyStatus } from '../api/types'
 
-const TYPE_FILTERS = ['All types', 'Terms & conditions', 'Shipping & delivery', 'Refund & replacement']
+const TYPE_FILTERS = ['All types', 'Terms & conditions', 'Shipping & delivery', 'Refund & replacement'] as const
+
+function categoryOf(title: string): (typeof TYPE_FILTERS)[number] {
+  const t = title.toLowerCase()
+  if (t.includes('third-party') || t.includes('shipping') || t.includes('deliver')) return 'Shipping & delivery'
+  if (t.includes('return') || t.includes('refund')) return 'Refund & replacement'
+  return 'Terms & conditions'
+}
 
 const STATUS_TONE: Record<PolicyStatus, 'accent' | 'warn' | 'success' | 'neutral'> = {
   ACTIVE: 'success',
@@ -17,7 +24,8 @@ const STATUS_TONE: Record<PolicyStatus, 'accent' | 'warn' | 'success' | 'neutral
 export function PolicyLibrary() {
   const [policies, setPolicies] = useState<PolicyDocument[]>([])
   const [selected, setSelected] = useState<PolicyDocument | null>(null)
-  const [filter, setFilter] = useState(TYPE_FILTERS[0])
+  const [filter, setFilter] = useState<(typeof TYPE_FILTERS)[number]>(TYPE_FILTERS[0])
+  const visible = policies.filter((doc) => filter === 'All types' || categoryOf(doc.title) === filter)
 
   useEffect(() => {
     getPolicies().then((docs) => {
@@ -62,7 +70,10 @@ export function PolicyLibrary() {
               </tr>
             </thead>
             <tbody>
-              {policies.map((doc) => (
+              {visible.length === 0 && (
+                <tr><td colSpan={4} style={{ color: 'var(--text-3)', textAlign: 'center', padding: 20 }}>No documents in this category.</td></tr>
+              )}
+              {visible.map((doc) => (
                 <tr key={doc.documentId} onClick={() => setSelected(doc)} style={{ cursor: 'pointer' }}>
                   <td className="doc-name">
                     <div className="doc-icon">

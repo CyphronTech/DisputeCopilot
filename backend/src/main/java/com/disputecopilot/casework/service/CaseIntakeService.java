@@ -62,9 +62,10 @@ public class CaseIntakeService {
   }
 
   private CaseEntity newCase(String orderId) {
-    // ponytail: customer name/email would come from the connector's orders/customers
-    // read too; hardcoded here because the fixture DB doesn't have a customers table yet.
-    CaseEntity entity = new CaseEntity(UUID.randomUUID(), orderId, "Priya Nair", "priya.nair@mail.com", CaseState.FETCHING_DATA, Instant.now());
+    List<Map<String, Object>> orderRows = connector.readApprovedTable("orders", orderId);
+    String customerName = orderRows.isEmpty() ? "Unknown customer" : String.valueOf(orderRows.get(0).get("customer_name"));
+    String customerEmail = orderRows.isEmpty() ? "unknown@example.com" : String.valueOf(orderRows.get(0).get("customer_email"));
+    CaseEntity entity = new CaseEntity(UUID.randomUUID(), orderId, customerName, customerEmail, CaseState.FETCHING_DATA, Instant.now());
     audit.record("Case opened", "investigation started", orderId, "System", true, "setup", "neutral");
     return cases.save(entity);
   }

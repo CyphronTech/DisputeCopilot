@@ -128,6 +128,9 @@ a { color: inherit; }
 .btn-outline { background: transparent; border-color: var(--hairline-strong); color: var(--text-2); }
 .btn-outline:hover { border-color: var(--text-3); color: var(--text); }
 .btn-sm { padding: 5.5px 10px; font-size: 11.5px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--hairline-strong); background: inherit; }
+.btn-primary:disabled:hover { background: var(--accent); }
 
 /* ---------- cards / tables ---------- */
 .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-lg); box-shadow: var(--shadow-card); }

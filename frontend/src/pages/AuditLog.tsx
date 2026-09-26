@@ -4,11 +4,19 @@ import { Icon } from '../components/Icon'
 import { downloadCsv } from '../lib/csv'
 import type { AuditEvent } from '../api/types'
 
-const TABS = ['All events', 'Workflow', 'Access', 'Configuration', 'Approval']
+const TABS = ['All events', 'Workflow', 'Access', 'Configuration', 'Approval'] as const
+
+function categoryOf(title: string): (typeof TABS)[number] {
+  if (title.startsWith('Login')) return 'Access'
+  if (title.includes('configuration')) return 'Configuration'
+  if (title.includes('approved') || title.includes('sent back for changes') || title.includes('resolved manually')) return 'Approval'
+  return 'Workflow'
+}
 
 export function AuditLog() {
   const [events, setEvents] = useState<AuditEvent[]>([])
-  const [tab, setTab] = useState(TABS[0])
+  const [tab, setTab] = useState<(typeof TABS)[number]>(TABS[0])
+  const visible = events.filter((e) => tab === 'All events' || categoryOf(e.title) === tab)
 
   useEffect(() => {
     getAuditEvents().then(setEvents)
@@ -25,7 +33,7 @@ export function AuditLog() {
         <div className="head-actions">
           <button
             className="btn btn-ghost"
-            onClick={() => downloadCsv('audit-log.csv', events.map((e) => ({
+            onClick={() => downloadCsv('audit-log.csv', visible.map((e) => ({
               title: e.title, detail: e.detail, orderId: e.caseOrderId ?? '', actor: e.actorName, timestamp: e.timestamp,
             })))}
           >
@@ -53,7 +61,10 @@ export function AuditLog() {
             </tr>
           </thead>
           <tbody>
-            {events.map((e) => (
+            {visible.length === 0 && (
+              <tr><td colSpan={4} style={{ color: 'var(--text-3)', textAlign: 'center', padding: 20 }}>No events in this category.</td></tr>
+            )}
+            {visible.map((e) => (
               <tr key={e.id}>
                 <td className="event-cell">
                   <div className={`event-icon ${e.tone}`}>

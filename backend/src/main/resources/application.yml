@@ -23,7 +23,7 @@ app:
 # will replace this with rows an admin approves through the setup wizard.
 connector:
   allowlist:
-    orders: [order_id, created_at, currency, amount]
+    orders: [order_id, customer_name, customer_email, product_name, created_at, currency, amount]
     payments: [order_id, status, processor_ref, paid_at]
     fulfillment: [order_id, carrier, awb, shipped_at]
     refunds: [order_id, status, amount, decided_at]
