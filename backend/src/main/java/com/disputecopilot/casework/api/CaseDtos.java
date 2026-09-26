@@ -9,6 +9,8 @@ public final class CaseDtos {
 
   public record CreateCaseRequest(@NotBlank String orderId) {}
 
+  public record ManualResolutionRequest(@NotBlank String recommendation, String note) {}
+
   public record CaseSummary(
       String caseId, String orderId, String customerName, String customerEmail,
       String state, String recommendation, Double confidence, Instant createdAt) {}

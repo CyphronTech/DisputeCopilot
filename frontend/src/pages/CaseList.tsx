@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { createCase, getCaseMetrics, getCases } from '../api/client'
+import { downloadCsv } from '../lib/csv'
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
 import { StateTag } from '../components/Tag'
@@ -10,9 +11,12 @@ const FILTERS = ['All states', 'Awaiting approval', 'Manual review', 'Exported']
 
 export function CaseList() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const query = (searchParams.get('q') ?? '').toLowerCase()
   const [cases, setCases] = useState<CaseSummary[]>([])
   const [metrics, setMetrics] = useState<CaseMetrics | null>(null)
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All states')
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     getCases().then(setCases)
@@ -20,19 +24,35 @@ export function CaseList() {
   }, [])
 
   async function handleNewInvestigation() {
-    const orderId = window.prompt('Order ID (e.g. ORD-2026-1042)')
+    const orderId = window.prompt('Order ID (e.g. ORD-2026-1042). This queries the merchant database live and runs the AI agent — it can take a few seconds.')
     if (!orderId) return
-    const created = await createCase(orderId)
-    navigate(`/cases/${created.caseId}`)
+    setCreating(true)
+    try {
+      const created = await createCase(orderId)
+      navigate(`/cases/${created.caseId}`)
+    } catch (e) {
+      window.alert(`Could not create case: ${e}`)
+    } finally {
+      setCreating(false)
+    }
   }
 
-  const visible = cases.filter((c) => {
-    if (filter === 'All states') return true
-    if (filter === 'Awaiting approval') return c.state === 'AWAITING_HUMAN_APPROVAL'
-    if (filter === 'Manual review') return c.state === 'MANUAL_REVIEW_REQUIRED'
-    if (filter === 'Exported') return c.state === 'EXPORTED'
-    return true
-  })
+  function handleExport() {
+    downloadCsv('cases.csv', visible.map((c) => ({
+      orderId: c.orderId, customer: c.customerName, email: c.customerEmail,
+      state: c.state, recommendation: c.recommendation ?? '', confidence: c.confidence ?? '', createdAt: c.createdAt,
+    })))
+  }
+
+  const visible = cases
+    .filter((c) => {
+      if (filter === 'All states') return true
+      if (filter === 'Awaiting approval') return c.state === 'AWAITING_HUMAN_APPROVAL'
+      if (filter === 'Manual review') return c.state === 'MANUAL_REVIEW_REQUIRED'
+      if (filter === 'Exported') return c.state === 'EXPORTED'
+      return true
+    })
+    .filter((c) => !query || c.orderId.toLowerCase().includes(query) || c.customerName.toLowerCase().includes(query) || c.customerEmail.toLowerCase().includes(query))
 
   return (
     <>
@@ -43,13 +63,16 @@ export function CaseList() {
           <p className="page-sub">Product-not-received investigations</p>
         </div>
         <div className="head-actions">
-          <a className="text-link" href="#export">Export list</a>
-          <button className="btn btn-primary" onClick={handleNewInvestigation}>
+          <a className="text-link" href="#export" onClick={(e) => { e.preventDefault(); handleExport() }}>Export list</a>
+          <button className="btn btn-primary" onClick={handleNewInvestigation} disabled={creating}>
             <Icon name="plus" />
-            New investigation
+            {creating ? 'Running…' : 'New investigation'}
           </button>
         </div>
       </div>
+      <p style={{ color: 'var(--text-3)', fontSize: 12.5, marginTop: -8, marginBottom: 16 }}>
+        "New investigation" queries your merchant database live via the connector, then an AI agent reviews the evidence and recommends CONTEST/ACCEPT, or routes to manual review below.
+      </p>
 
       {metrics && (
         <div className="metric-strip">

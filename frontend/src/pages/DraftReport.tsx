@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { approveReport, getDraftReport } from '../api/client'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { approveReport, getDraftReport, requestReportChanges } from '../api/client'
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
 import type { DraftReport as DraftReportData } from '../api/types'
 
 export function DraftReport() {
   const { caseId = '' } = useParams()
+  const navigate = useNavigate()
   const [report, setReport] = useState<DraftReportData | null>(null)
 
   useEffect(() => {
@@ -14,6 +15,13 @@ export function DraftReport() {
   }, [caseId])
 
   if (!report) return null
+
+  async function handleRequestChanges() {
+    const note = window.prompt('What needs to change? This sends the case back to manual review.')
+    if (note === null) return
+    await requestReportChanges(caseId, note)
+    navigate(`/cases/${caseId}`)
+  }
 
   return (
     <>
@@ -25,9 +33,6 @@ export function DraftReport() {
         <div>
           <h1 className="page-title">Draft report</h1>
           <p className="page-sub">Revision {report.revision} · {report.approved ? 'approved' : 'not yet approved'}</p>
-        </div>
-        <div className="head-actions">
-          <button className="btn btn-ghost">Edit draft</button>
         </div>
       </div>
 
@@ -80,7 +85,7 @@ export function DraftReport() {
               <Icon name="check" />
               Approve this revision
             </button>
-            <button className="btn btn-outline">Request changes</button>
+            <button className="btn btn-outline" onClick={handleRequestChanges}>Request changes</button>
           </div>
         </div>
       </div>

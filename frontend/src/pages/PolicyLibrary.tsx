@@ -35,7 +35,7 @@ export function PolicyLibrary() {
           <p className="page-sub">Versioned documents used for effective-date grounded retrieval</p>
         </div>
         <div className="head-actions">
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" disabled title="Uploading new policy documents isn't implemented yet — these are seeded directly in the database">
             <Icon name="upload" />
             Upload policy
           </button>
@@ -101,9 +101,9 @@ export function PolicyLibrary() {
               ))}
             </div>
           )}
-          <div className="drop">
+          <div className="drop" style={{ opacity: 0.5 }} title="Not implemented yet">
             <Icon name="upload" />
-            <div>Drop a PDF or TXT file, or browse</div>
+            <div>Upload isn't wired up yet — policies are seeded directly for now</div>
           </div>
         </div>
       </div>

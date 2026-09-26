@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getAuditEvents } from '../api/client'
 import { Icon } from '../components/Icon'
+import { downloadCsv } from '../lib/csv'
 import type { AuditEvent } from '../api/types'
 
 const TABS = ['All events', 'Workflow', 'Access', 'Configuration', 'Approval']
@@ -22,7 +23,14 @@ export function AuditLog() {
           <p className="page-sub">Append-only record of security and business events</p>
         </div>
         <div className="head-actions">
-          <button className="btn btn-ghost">Export CSV</button>
+          <button
+            className="btn btn-ghost"
+            onClick={() => downloadCsv('audit-log.csv', events.map((e) => ({
+              title: e.title, detail: e.detail, orderId: e.caseOrderId ?? '', actor: e.actorName, timestamp: e.timestamp,
+            })))}
+          >
+            Export CSV
+          </button>
         </div>
       </div>
 

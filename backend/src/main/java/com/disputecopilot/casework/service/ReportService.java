@@ -57,6 +57,15 @@ public class ReportService {
     return build(entity, evidenceItems.findByCaseId(entity.getId()));
   }
 
+  @Transactional
+  public DraftReport requestChanges(String caseId, String note) {
+    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(NoSuchElementException::new);
+    entity.applyReview(entity.getRecommendation(), entity.getConfidence(), note, CaseState.MANUAL_REVIEW_REQUIRED);
+    cases.save(entity);
+    audit.record("Report sent back for changes", note == null || note.isBlank() ? "no note provided" : note, entity.getOrderId(), "Admin", false, "alert", "warn");
+    return build(entity, evidenceItems.findByCaseId(entity.getId()));
+  }
+
   private DraftReport build(CaseEntity entity, List<EvidenceItemEntity> items) {
     List<EvidenceIndexEntry> index = items.stream()
         .map(i -> new EvidenceIndexEntry(i.getTitle() + ": " + i.getDescription(), i.getSourceRef()))

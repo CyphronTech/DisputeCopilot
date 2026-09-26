@@ -1,4 +1,5 @@
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { logout } from '../api/client'
 import { Icon } from './Icon'
 
@@ -17,8 +18,9 @@ const NAV = [
 ]
 
 export function Layout() {
+  const [collapsed, setCollapsed] = useState(false)
   return (
-    <div className="shell">
+    <div className={`shell ${collapsed ? 'collapsed' : ''}`}>
       <aside className="sidebar">
         <div className="brand-row">
           <div className="brand-mark">DC</div>
@@ -50,7 +52,7 @@ export function Layout() {
         </div>
       </aside>
       <div className="content">
-        <Topbar />
+        <Topbar onToggleSidebar={() => setCollapsed((c) => !c)} />
         <main className="main">
           <Outlet />
         </main>
@@ -59,18 +61,26 @@ export function Layout() {
   )
 }
 
-function Topbar() {
+function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [query, setQuery] = useState(pathname === '/' ? searchParams.get('q') ?? '' : '')
 
   async function handleLogout() {
     await logout()
     navigate('/login')
   }
+
+  function handleSearch(value: string) {
+    setQuery(value)
+    navigate(value ? `/?q=${encodeURIComponent(value)}` : '/', { replace: pathname === '/' })
+  }
+
   const crumb = CRUMBS[pathname] ?? Object.entries(CRUMBS).find(([path]) => pathname.startsWith(path) && path !== '/')?.[1] ?? 'Cases'
   return (
     <div className="topbar">
-      <button className="icon-btn">
+      <button className="icon-btn" onClick={onToggleSidebar} title="Toggle sidebar">
         <Icon name="menu" />
       </button>
       <div className="crumbs">
@@ -79,12 +89,13 @@ function Topbar() {
       <div className="topbar-spacer" />
       <div className="search-box">
         <Icon name="search" />
-        <span>Search order ID, customer&hellip;</span>
-        <span className="kbd">⌘K</span>
+        <input
+          value={query}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Search order ID, customer…"
+          style={{ background: 'transparent', border: 'none', outline: 'none', color: 'inherit', width: '100%' }}
+        />
       </div>
-      <button className="icon-btn">
-        <Icon name="bell" />
-      </button>
       <div className="topbar-divider" />
       <div className="topbar-profile" onClick={handleLogout} title="Sign out" style={{ cursor: 'pointer' }}>
         <div className="avatar">AR</div>

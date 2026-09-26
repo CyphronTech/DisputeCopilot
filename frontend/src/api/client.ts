@@ -47,12 +47,32 @@ export async function getCase(caseId: string): Promise<CaseDetail> {
   return fetch(`/api/v1/cases/${caseId}`).then((r) => r.json())
 }
 
+export async function resolveManually(caseId: string, recommendation: 'CONTEST' | 'ACCEPT', note: string): Promise<CaseDetail> {
+  const r = await fetch(`/api/v1/cases/${caseId}/manual-resolution`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recommendation, note }),
+  })
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+
 export async function getDraftReport(caseId: string): Promise<DraftReport> {
   return fetch(`/api/v1/cases/${caseId}/report`).then((r) => r.json())
 }
 
 export async function approveReport(caseId: string): Promise<DraftReport> {
   const r = await fetch(`/api/v1/cases/${caseId}/report/approve`, { method: 'POST' })
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+
+export async function requestReportChanges(caseId: string, note: string): Promise<DraftReport> {
+  const r = await fetch(`/api/v1/cases/${caseId}/report/request-changes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ note }),
+  })
   if (!r.ok) throw new Error(await r.text())
   return r.json()
 }

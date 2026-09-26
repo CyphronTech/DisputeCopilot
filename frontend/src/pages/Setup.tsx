@@ -138,30 +138,24 @@ export function Setup() {
               <h2>Merchant database connector</h2>
             </div>
             <p className="desc">
-              Read-only access to <span className="mono">dispute_case_view</span> only.
+              Not editable here yet — the table/column allowlist is currently set in the backend's
+              <span className="mono"> application.yml</span>, not through this UI. The schema-discovery
+              wizard described in the architecture docs hasn't been built.
             </p>
             <div className="row">
               <label>Host</label>
-              <input defaultValue={config.dbHost} />
+              <input defaultValue={config.dbHost} readOnly disabled />
             </div>
             <div className="row">
               <label>Database</label>
-              <input defaultValue={config.dbDatabase} />
+              <input defaultValue={config.dbDatabase} readOnly disabled />
             </div>
             <div className="row">
               <label>Username</label>
-              <input defaultValue={config.dbUsername} />
-            </div>
-            <div className="row">
-              <label>Password</label>
-              <input type="password" placeholder="••••••••••••" />
+              <input defaultValue={config.dbUsername} readOnly disabled />
             </div>
             <div className="row-actions">
-              <div className={`status ${config.dbLastTested ? '' : 'pending'}`}>
-                <span className="dot" />
-                {config.dbLastTested ?? 'Not yet tested'}
-              </div>
-              <button className="btn btn-ghost btn-sm">Test connection</button>
+              <button className="btn btn-ghost btn-sm" disabled title="Not implemented yet">Test connection</button>
             </div>
           </div>
 
@@ -172,16 +166,14 @@ export function Setup() {
               </div>
               <h2>Merchant time zone</h2>
             </div>
-            <p className="desc">Used to compute the calendar date for policy effective-date filtering.</p>
+            <p className="desc">Not editable here yet — used to compute the calendar date for policy effective-date filtering once that's wired up.</p>
             <div className="row">
               <label>Time zone</label>
-              <select defaultValue={config.timeZone}>
+              <select defaultValue={config.timeZone} disabled>
                 <option>{config.timeZone}</option>
               </select>
             </div>
           </div>
-
-          <button className="btn btn-primary">Save configuration</button>
         </>
       )}
     </>

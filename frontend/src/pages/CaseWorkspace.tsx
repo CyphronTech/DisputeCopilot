@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getCase } from '../api/client'
+import { getCase, resolveManually } from '../api/client'
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
 import { StateTag, Tag } from '../components/Tag'
@@ -9,12 +9,23 @@ import type { CaseDetail } from '../api/types'
 export function CaseWorkspace() {
   const { caseId = '' } = useParams()
   const [detail, setDetail] = useState<CaseDetail | null>(null)
+  const [note, setNote] = useState('')
+  const [resolving, setResolving] = useState(false)
 
   useEffect(() => {
     getCase(caseId).then(setDetail)
   }, [caseId])
 
   if (!detail) return null
+
+  async function handleResolve(recommendation: 'CONTEST' | 'ACCEPT') {
+    setResolving(true)
+    try {
+      setDetail(await resolveManually(caseId, recommendation, note))
+    } finally {
+      setResolving(false)
+    }
+  }
 
   return (
     <>
@@ -96,6 +107,25 @@ export function CaseWorkspace() {
               </div>
             )}
           </div>
+
+          {detail.state === 'MANUAL_REVIEW_REQUIRED' && (
+            <div className="card" style={{ marginTop: 12 }}>
+              <h2 style={{ marginTop: 0 }}>Resolve manually</h2>
+              <p style={{ color: 'var(--text-3)', fontSize: 12.5, marginTop: 4 }}>
+                The agent could not reach a confident recommendation. Review the evidence above and decide yourself.
+              </p>
+              <textarea
+                placeholder="Note (optional) — why you're making this call"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                style={{ width: '100%', minHeight: 60, marginTop: 8, marginBottom: 8 }}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary" disabled={resolving} onClick={() => handleResolve('CONTEST')}>Contest</button>
+                <button className="btn btn-outline" disabled={resolving} onClick={() => handleResolve('ACCEPT')}>Accept</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

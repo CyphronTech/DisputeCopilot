@@ -116,6 +116,18 @@ public class CaseIntakeService {
     return toDetail(entity, evidenceItems.findByCaseId(entity.getId()));
   }
 
+  @Transactional
+  public CaseDetail resolveManually(String caseId, String recommendation, String note) {
+    if (!recommendation.equals("CONTEST") && !recommendation.equals("ACCEPT")) {
+      throw new IllegalArgumentException("recommendation must be CONTEST or ACCEPT");
+    }
+    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(NoSuchElementException::new);
+    entity.applyReview(recommendation, 1.0, note, CaseState.AWAITING_HUMAN_APPROVAL);
+    cases.save(entity);
+    audit.record("Case resolved manually", recommendation + (note == null || note.isBlank() ? "" : " — " + note), entity.getOrderId(), "Admin", false, "user", "neutral");
+    return toDetail(entity, evidenceItems.findByCaseId(entity.getId()));
+  }
+
   private List<PolicyCitation> toCitations(UUID caseId) {
     return citations.findByCaseId(caseId).stream()
         .map(c -> new PolicyCitation(c.getDocumentId().toString(), c.getTitle(), c.getVersion(), 1, c.getQuote()))

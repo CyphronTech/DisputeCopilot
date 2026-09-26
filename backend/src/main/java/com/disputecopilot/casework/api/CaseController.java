@@ -4,6 +4,7 @@ import com.disputecopilot.casework.api.CaseDtos.CaseDetail;
 import com.disputecopilot.casework.api.CaseDtos.CaseMetrics;
 import com.disputecopilot.casework.api.CaseDtos.CaseSummary;
 import com.disputecopilot.casework.api.CaseDtos.CreateCaseRequest;
+import com.disputecopilot.casework.api.CaseDtos.ManualResolutionRequest;
 import com.disputecopilot.casework.domain.CaseState;
 import com.disputecopilot.casework.service.CaseIntakeService;
 import jakarta.validation.Valid;
@@ -38,6 +39,11 @@ public class CaseController {
   @GetMapping("/{caseId}")
   public CaseDetail get(@PathVariable String caseId) {
     return caseIntakeService.get(caseId);
+  }
+
+  @PostMapping("/{caseId}/manual-resolution")
+  public CaseDetail resolveManually(@PathVariable String caseId, @Valid @RequestBody ManualResolutionRequest request) {
+    return caseIntakeService.resolveManually(caseId, request.recommendation(), request.note());
   }
 
   @GetMapping("/metrics")
