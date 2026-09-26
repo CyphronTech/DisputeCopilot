@@ -32,9 +32,18 @@ public class SchemaMappingSuggester {
       If no table clearly fits a role, omit that role entirely. Never invent a table or column
       name that isn't in the list you were given.
 
+      For the "orders" role only, also pick the columns holding the customer's name and email
+      if present. For the "refunds" role only, also pick the column holding the refund's status
+      and the exact value in that column that means the refund was issued/completed/paid out
+      (e.g. "issued", "completed", "REFUNDED") — copy the value spelling you'd expect the
+      merchant to actually store, not necessarily the word "issued".
+
       Respond with ONLY a JSON object, no markdown fences, no prose:
-      {"orders": {"table": "...", "orderIdColumn": "..."}, "payments": {...}, ...}
-      Omit any role you can't confidently map.
+      {"orders": {"table": "...", "orderIdColumn": "...", "customerNameColumn": "...", "customerEmailColumn": "..."},
+       "refunds": {"table": "...", "orderIdColumn": "...", "statusColumn": "...", "issuedValue": "..."},
+       "payments": {"table": "...", "orderIdColumn": "..."}, ...}
+      Omit any role you can't confidently map, and omit any of the extra per-role fields you're
+      not confident about.
       """;
 
   private final ModelConfigJpaRepository modelConfigs;
@@ -68,13 +77,21 @@ public class SchemaMappingSuggester {
         String table = node.path("table").asText("");
         String column = node.path("orderIdColumn").asText("");
         List<String> columns = schema.get(table);
-        if (columns != null && columns.contains(column)) {
-          result.put(role, new TableRoleMappingStore.RoleMapping(table, column));
-        }
+        if (columns == null || !columns.contains(column)) continue;
+
+        String nameColumn = validColumn(columns, node.path("customerNameColumn").asText(null));
+        String emailColumn = validColumn(columns, node.path("customerEmailColumn").asText(null));
+        String statusColumn = validColumn(columns, node.path("statusColumn").asText(null));
+        String issuedValue = node.hasNonNull("issuedValue") ? node.path("issuedValue").asText() : null;
+        result.put(role, new TableRoleMappingStore.RoleMapping(table, column, nameColumn, emailColumn, statusColumn, issuedValue));
       }
       return result;
     } catch (Exception e) {
       throw new IllegalStateException("Could not parse mapping suggestion: " + raw, e);
     }
+  }
+
+  private String validColumn(List<String> columns, String candidate) {
+    return candidate != null && columns.contains(candidate) ? candidate : null;
   }
 }

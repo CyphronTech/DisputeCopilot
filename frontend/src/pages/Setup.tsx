@@ -189,14 +189,15 @@ export function Setup() {
     }
   }
 
-  function updateRoleMapping(role: string, field: 'tableName' | 'orderIdColumn', value: string) {
-    setRoleMapping((prev) => ({
-      ...prev,
-      [role]: {
-        tableName: field === 'tableName' ? value : (prev[role]?.tableName ?? ''),
-        orderIdColumn: field === 'orderIdColumn' ? value : (field === 'tableName' ? '' : (prev[role]?.orderIdColumn ?? '')),
-      },
-    }))
+  function updateRoleMapping(role: string, field: keyof RoleMapping, value: string) {
+    setRoleMapping((prev) => {
+      const current = prev[role] ?? { tableName: '', orderIdColumn: '' }
+      // Changing the table invalidates every column choice made against the old table.
+      if (field === 'tableName') {
+        return { ...prev, [role]: { tableName: value, orderIdColumn: '' } }
+      }
+      return { ...prev, [role]: { ...current, [field]: value } }
+    })
   }
 
   async function handleSaveMapping() {
@@ -470,6 +471,50 @@ export function Setup() {
                         ))}
                       </select>
                     </div>
+                    {role === 'orders' && roleMapping[role]?.tableName && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6, paddingLeft: 178 }}>
+                        <select
+                          value={roleMapping[role]?.customerNameColumn ?? ''}
+                          onChange={(e) => updateRoleMapping(role, 'customerNameColumn', e.target.value)}
+                          style={{ flex: 1, minWidth: 0 }}
+                        >
+                          <option value="">customer name column (optional)</option>
+                          {(schema[roleMapping[role]?.tableName ?? ''] ?? []).map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={roleMapping[role]?.customerEmailColumn ?? ''}
+                          onChange={(e) => updateRoleMapping(role, 'customerEmailColumn', e.target.value)}
+                          style={{ flex: 1, minWidth: 0 }}
+                        >
+                          <option value="">customer email column (optional)</option>
+                          {(schema[roleMapping[role]?.tableName ?? ''] ?? []).map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {role === 'refunds' && roleMapping[role]?.tableName && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6, paddingLeft: 178 }}>
+                        <select
+                          value={roleMapping[role]?.statusColumn ?? ''}
+                          onChange={(e) => updateRoleMapping(role, 'statusColumn', e.target.value)}
+                          style={{ flex: 1, minWidth: 0 }}
+                        >
+                          <option value="">status column (optional)</option>
+                          {(schema[roleMapping[role]?.tableName ?? ''] ?? []).map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                        <input
+                          value={roleMapping[role]?.issuedValue ?? ''}
+                          onChange={(e) => updateRoleMapping(role, 'issuedValue', e.target.value)}
+                          placeholder='value meaning "issued" (e.g. issued)'
+                          style={{ flex: 1, minWidth: 0 }}
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
                 <div className="row-actions">

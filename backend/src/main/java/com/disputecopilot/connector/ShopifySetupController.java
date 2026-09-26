@@ -2,6 +2,7 @@ package com.disputecopilot.connector;
 
 import com.disputecopilot.audit.AuditRecorder;
 import com.disputecopilot.setup.CryptoUtil;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -44,7 +45,7 @@ public class ShopifySetupController {
   }
 
   @PutMapping
-  public ShopifyView save(@RequestBody SaveShopifyRequest request) {
+  public ShopifyView save(@Valid @RequestBody SaveShopifyRequest request) {
     ShopifyConfigEntity existing = repository.findById(Boolean.TRUE).orElse(null);
     String token = (request.accessToken() == null || request.accessToken().isBlank()) && existing != null
         ? existing.getAccessToken() : crypto.encrypt(request.accessToken());

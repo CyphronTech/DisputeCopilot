@@ -2,6 +2,7 @@ package com.disputecopilot.connector;
 
 import com.disputecopilot.audit.AuditRecorder;
 import com.disputecopilot.setup.CryptoUtil;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.List;
@@ -51,7 +52,7 @@ public class ConnectorSetupController {
   }
 
   @PutMapping
-  public ConnectorView save(@RequestBody SaveConnectorRequest request) {
+  public ConnectorView save(@Valid @RequestBody SaveConnectorRequest request) {
     MerchantDbConfigEntity existing = configRepository.findById(Boolean.TRUE).orElse(null);
     String password = (request.password() == null || request.password().isBlank()) && existing != null
         ? existing.getPassword() : crypto.encrypt(request.password());
@@ -110,13 +111,19 @@ public class ConnectorSetupController {
     Map<String, List<String>> schema = schemaDiscovery.discover();
     Map<String, TableRoleMappingStore.RoleMapping> validated = new java.util.LinkedHashMap<>();
     for (var entry : mapping.entrySet()) {
-      List<String> columns = schema.get(entry.getValue().tableName());
-      if (columns != null && columns.contains(entry.getValue().orderIdColumn())) {
-        validated.put(entry.getKey(), entry.getValue());
-      }
+      TableRoleMappingStore.RoleMapping m = entry.getValue();
+      List<String> columns = schema.get(m.tableName());
+      if (columns == null || !columns.contains(m.orderIdColumn())) continue;
+      validated.put(entry.getKey(), new TableRoleMappingStore.RoleMapping(m.tableName(), m.orderIdColumn(),
+          validColumn(columns, m.customerNameColumn()), validColumn(columns, m.customerEmailColumn()),
+          validColumn(columns, m.statusColumn()), m.issuedValue()));
     }
     roleMappingStore.save(validated);
     audit.record("Table role mapping updated", validated.size() + " roles mapped", null, "Admin", false, "setup", "neutral");
     return roleMappingStore.load();
+  }
+
+  private String validColumn(List<String> columns, String candidate) {
+    return candidate != null && columns.contains(candidate) ? candidate : null;
   }
 }

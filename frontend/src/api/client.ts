@@ -170,6 +170,10 @@ export async function saveAllowlist(allowlist: Record<string, string[]>): Promis
 export interface RoleMapping {
   tableName: string
   orderIdColumn: string
+  customerNameColumn?: string | null
+  customerEmailColumn?: string | null
+  statusColumn?: string | null
+  issuedValue?: string | null
 }
 
 export async function suggestTableMapping(): Promise<Record<string, RoleMapping>> {

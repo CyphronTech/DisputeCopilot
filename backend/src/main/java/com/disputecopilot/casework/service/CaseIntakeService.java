@@ -13,7 +13,8 @@ import com.disputecopilot.casework.persistence.ConnectorQueryAuditEntity;
 import com.disputecopilot.casework.persistence.ConnectorQueryAuditJpaRepository;
 import com.disputecopilot.casework.persistence.EvidenceItemEntity;
 import com.disputecopilot.casework.persistence.EvidenceItemJpaRepository;
-import com.disputecopilot.connector.MerchantConnector;
+import com.disputecopilot.connector.MerchantConnectorRouter;
+import com.disputecopilot.connector.TableRoleMappingStore;
 import com.disputecopilot.agent.EvidenceReviewAgent;
 import com.disputecopilot.audit.AuditRecorder;
 import java.time.Instant;
@@ -32,19 +33,21 @@ public class CaseIntakeService {
   private final CaseJpaRepository cases;
   private final EvidenceItemJpaRepository evidenceItems;
   private final ConnectorQueryAuditJpaRepository queryAudit;
-  private final MerchantConnector connector;
+  private final MerchantConnectorRouter connector;
   private final EvidenceReviewAgent reviewAgent;
   private final AuditRecorder audit;
   private final CaseCitationJpaRepository citations;
+  private final TableRoleMappingStore roleMapping;
 
   public CaseIntakeService(
       CaseJpaRepository cases,
       EvidenceItemJpaRepository evidenceItems,
       ConnectorQueryAuditJpaRepository queryAudit,
-      MerchantConnector connector,
+      MerchantConnectorRouter connector,
       EvidenceReviewAgent reviewAgent,
       AuditRecorder audit,
-      CaseCitationJpaRepository citations) {
+      CaseCitationJpaRepository citations,
+      TableRoleMappingStore roleMapping) {
     this.cases = cases;
     this.evidenceItems = evidenceItems;
     this.queryAudit = queryAudit;
@@ -52,6 +55,7 @@ public class CaseIntakeService {
     this.reviewAgent = reviewAgent;
     this.audit = audit;
     this.citations = citations;
+    this.roleMapping = roleMapping;
   }
 
   @Transactional
@@ -63,8 +67,11 @@ public class CaseIntakeService {
 
   private CaseEntity newCase(String orderId) {
     List<Map<String, Object>> orderRows = connector.readApprovedTable("orders", orderId);
-    String customerName = orderRows.isEmpty() ? "Unknown customer" : String.valueOf(orderRows.get(0).get("customer_name"));
-    String customerEmail = orderRows.isEmpty() ? "unknown@example.com" : String.valueOf(orderRows.get(0).get("customer_email"));
+    TableRoleMappingStore.RoleMapping ordersMapping = roleMapping.load().get("orders");
+    String nameColumn = ordersMapping != null && ordersMapping.customerNameColumn() != null ? ordersMapping.customerNameColumn() : "customer_name";
+    String emailColumn = ordersMapping != null && ordersMapping.customerEmailColumn() != null ? ordersMapping.customerEmailColumn() : "customer_email";
+    String customerName = orderRows.isEmpty() ? "Unknown customer" : String.valueOf(orderRows.get(0).get(nameColumn));
+    String customerEmail = orderRows.isEmpty() ? "unknown@example.com" : String.valueOf(orderRows.get(0).get(emailColumn));
     CaseEntity entity = new CaseEntity(UUID.randomUUID(), orderId, customerName, customerEmail, CaseState.FETCHING_DATA, Instant.now());
     audit.record("Case opened", "investigation started", orderId, "System", true, "setup", "neutral");
     return cases.save(entity);
@@ -132,13 +139,12 @@ public class CaseIntakeService {
     return toDetail(caseEntity, evidence);
   }
 
-  // ponytail: only recognizes a literal "status" column valued "issued" (case-insensitive) —
-  // true for the fixture demo and the Shopify connector (which synthesizes that field), but a
-  // merchant's own arbitrary DB schema may use a different column/value and this silently
-  // won't catch anything for them. Degrades to "guard doesn't fire", not a false positive.
   private boolean looksIssued(Map<String, Object> refundRow) {
-    Object status = refundRow.get("status");
-    return status != null && String.valueOf(status).trim().equalsIgnoreCase("issued");
+    TableRoleMappingStore.RoleMapping refundsMapping = roleMapping.load().get("refunds");
+    String statusColumn = refundsMapping != null && refundsMapping.statusColumn() != null ? refundsMapping.statusColumn() : "status";
+    String issuedValue = refundsMapping != null && refundsMapping.issuedValue() != null ? refundsMapping.issuedValue() : "issued";
+    Object status = refundRow.get(statusColumn);
+    return status != null && String.valueOf(status).trim().equalsIgnoreCase(issuedValue);
   }
 
   private EvidenceItemEntity toEvidenceItem(UUID caseId, String table, List<Map<String, Object>> rows) {
