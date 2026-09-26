@@ -76,7 +76,7 @@ export function CaseList() {
         "New investigation" looks up the order in your store's records, then an AI reviews it and tells you whether to contest or accept the dispute — or flags it for you to decide.
       </p>
       {error && (
-        <div className="card" style={{ background: 'var(--error-dim)', color: 'var(--error)', marginBottom: 16, fontSize: 12.5 }}>
+        <div className="card" style={{ background: 'var(--error-dim)', color: 'var(--error)', marginBottom: 16, fontSize: 12.5, padding: '10px 14px' }}>
           {error}
         </div>
       )}

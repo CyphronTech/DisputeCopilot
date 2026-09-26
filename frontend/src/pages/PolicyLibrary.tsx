@@ -79,7 +79,7 @@ export function PolicyLibrary() {
       </div>
 
       {uploadError && (
-        <div className="card" style={{ background: 'var(--error-dim)', color: 'var(--error)', marginBottom: 16, fontSize: 12.5 }}>
+        <div className="card" style={{ background: 'var(--error-dim)', color: 'var(--error)', marginBottom: 16, fontSize: 12.5, padding: '10px 14px' }}>
           {uploadError}
         </div>
       )}

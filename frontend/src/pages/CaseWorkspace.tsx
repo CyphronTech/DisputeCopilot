@@ -48,7 +48,7 @@ export function CaseWorkspace() {
         </Link>
       </div>
 
-      <div className="card" style={{ marginBottom: 16, background: 'var(--accent-dim)' }}>
+      <div className="card panel" style={{ marginBottom: 16, background: 'var(--accent-dim)' }}>
         <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--text-3)', marginBottom: 6 }}>In plain English</div>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>
           {detail.summary ?? 'No summary available yet — the AI review either hasn’t run or didn’t produce one for this case.'}
@@ -125,7 +125,7 @@ export function CaseWorkspace() {
           </div>
 
           {detail.state === 'MANUAL_REVIEW_REQUIRED' && (
-            <div className="card" style={{ marginTop: 12 }}>
+            <div className="card panel" style={{ marginTop: 12 }}>
               <h2 style={{ marginTop: 0 }}>Resolve manually</h2>
               <p style={{ color: 'var(--text-3)', fontSize: 12.5, marginTop: 4 }}>
                 The AI couldn't reach a confident decision on this one. Review the evidence above and decide yourself.
