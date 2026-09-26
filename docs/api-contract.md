@@ -45,9 +45,13 @@ Example problem response:
 | `PUT` | `/setup/model` | Admin | Save provider, base URL, model names, and secret |
 | `POST` | `/setup/model/test` | Admin | Run a non-customer-data connectivity test |
 | `PUT` | `/setup/connector` | Admin | Save encrypted read-only DB configuration |
-| `POST` | `/setup/connector/test` | Admin | Validate privileges, schema, and view contract |
+| `POST` | `/setup/connector/test` | Admin | Validate privileges and connectivity |
+| `GET` | `/setup/connector/schema` | Admin | Run schema discovery: list tables/columns with pre-suggested (not yet saved) approval state |
+| `PUT` | `/setup/connector/allowlist` | Admin | Save the confirmed table/column allowlist for this connector profile |
 
 Secrets are accepted write-only. Read responses contain only provider name, masked key suffix, last test time, and status. `/setup/general` is not a secret endpoint; it stores an IANA time zone identifier (for example `Asia/Kolkata`) used only for date arithmetic, never sent to the model provider as part of any prompt beyond a resolved calendar date.
+
+`/setup/connector/schema` reads catalog metadata only (table and column names/types via `information_schema`), never row data, and never persists anything by itself — it only returns suggestions for the admin to review. Nothing becomes readable by `readApprovedTable` until `/setup/connector/allowlist` is saved (see [Architecture — Schema discovery and the bounded read tool](architecture.md#schema-discovery-and-the-bounded-read-tool)).
 
 Environment-variable secret override (an optional, opt-in operator profile) is documented in [Security and privacy](security-and-privacy.md); it does not add or change any API surface.
 

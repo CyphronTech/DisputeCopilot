@@ -1,0 +1,13 @@
+package com.disputecopilot.casework.domain;
+
+public enum CaseState {
+  CREATED,
+  FETCHING_DATA,
+  COLLECTING_EVIDENCE,
+  REVIEWING_EVIDENCE,
+  AWAITING_HUMAN_APPROVAL,
+  MANUAL_REVIEW_REQUIRED,
+  APPROVED,
+  EXPORTED,
+  FAILED
+}

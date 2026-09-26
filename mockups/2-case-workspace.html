@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>DisputeCopilot — Case workspace</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  .case-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  .back { color: var(--text-3); font-size: 12.5px; margin-bottom: 8px; display: block; }
+  .case-title { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 12px; }
+  .case-title .mono { color: var(--text-3); font-weight: 400; font-size: 14px; }
+  .grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 20px;
+  }
+  .panel { padding: 20px; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-3); font-weight: 500; margin: 0 0 16px; }
+  .timeline { display: flex; flex-direction: column; }
+  .t-item { display: grid; grid-template-columns: 84px 1fr; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--hairline); }
+  .t-item:last-child { border-bottom: none; }
+  .t-time { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-3); padding-top: 2px; }
+  .t-body strong { font-size: 13.5px; font-weight: 500; display: block; margin-bottom: 3px; }
+  .t-body span { font-size: 12.5px; color: var(--text-3); }
+  .t-source { font-family: var(--font-mono); font-size: 10.5px; color: var(--accent); margin-top: 4px; display: block; }
+  .cite { padding: 14px 0; border-bottom: 1px solid var(--hairline); }
+  .cite:last-child { border-bottom: none; }
+  .cite-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); margin-bottom: 6px; }
+  .cite-quote { font-size: 12.5px; color: var(--text-2); border-left: 2px solid var(--accent-solid); padding-left: 10px; line-height: 1.5; }
+  .rec-card { padding: 18px 20px; margin-top: 20px; }
+  .rec-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .rec-label { font-size: 13px; color: var(--text-3); }
+  .conf-bar { height: 5px; border-radius: 4px; background: var(--surface-2); overflow: hidden; margin-top: 10px; }
+  .conf-fill { height: 100%; width: 88%; background: var(--accent); }
+  .conf-text { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); margin-top: 6px; }
+  .caveat { font-size: 12px; color: var(--warn); margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="brand-name">DisputeCopilot</div>
+        <div class="brand-sub">Northwind Retail</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="active" href="#"><span class="dot"></span>Cases</a>
+      <a href="#"><span class="dot"></span>Policy Library</a>
+      <a href="#"><span class="dot"></span>Audit</a>
+      <a href="#"><span class="dot"></span>Setup</a>
+    </nav>
+    <div class="nav-footer">Signed in as A. Rao<br>Dispute Analyst</div>
+  </aside>
+  <main class="main">
+    <span class="back">&larr; Cases</span>
+    <div class="case-head">
+      <div>
+        <div class="case-title">ORD-2026-1042 <span class="mono">Priya Nair</span></div>
+        <div style="margin-top:10px;"><span class="badge badge-accent"><span class="dot"></span>AWAITING_HUMAN_APPROVAL</span></div>
+      </div>
+      <button class="btn btn-ghost">View draft report →</button>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="card panel">
+          <h2>Evidence timeline</h2>
+          <div class="timeline">
+            <div class="t-item">
+              <div class="t-time">Sep 18<br>09:14</div>
+              <div class="t-body">
+                <strong>Order placed</strong>
+                <span>₹4,299 · Prepaid via UPI</span>
+                <span class="t-source">order.createdAt</span>
+              </div>
+            </div>
+            <div class="t-item">
+              <div class="t-time">Sep 19<br>16:40</div>
+              <div class="t-body">
+                <strong>Shipment dispatched</strong>
+                <span>Carrier: Bluedart · AWB 88123094</span>
+                <span class="t-source">fulfillment.shippedAt</span>
+              </div>
+            </div>
+            <div class="t-item">
+              <div class="t-time">Sep 21<br>—</div>
+              <div class="t-body">
+                <strong>Delivery proof missing</strong>
+                <span>No POD scan found after last tracking event</span>
+                <span class="t-source">gap · expectedEvidence</span>
+              </div>
+            </div>
+            <div class="t-item">
+              <div class="t-time">Sep 22<br>10:02</div>
+              <div class="t-body">
+                <strong>Customer message</strong>
+                <span>"Package never arrived, tracking stuck at Delhi hub"</span>
+                <span class="t-source">communications[2]</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card panel">
+          <h2>Policy citations</h2>
+          <div class="cite">
+            <div class="cite-meta">Shipping &amp; Delivery Policy · v2026.2 · p.3</div>
+            <div class="cite-quote">"Claims for non-delivery must be raised within 10 days of the last tracking update."</div>
+          </div>
+          <div class="cite">
+            <div class="cite-meta">Refund &amp; Replacement Policy · v2026.1 · p.1</div>
+            <div class="cite-quote">"Orders with no delivery confirmation after transit exceeds carrier SLA qualify for replacement."</div>
+          </div>
+        </div>
+
+        <div class="card rec-card">
+          <div class="rec-top">
+            <span class="rec-label">Recommendation</span>
+            <span class="badge badge-accent"><span class="dot"></span>CONTEST</span>
+          </div>
+          <div class="conf-bar"><div class="conf-fill"></div></div>
+          <div class="conf-text">confidence 0.88</div>
+          <div class="caveat">⚠ Delivery proof gap — recommendation issued despite missing POD scan</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

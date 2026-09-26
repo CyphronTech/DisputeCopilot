@@ -138,31 +138,48 @@ does not mean unbounded token cost: a per-case cost ceiling is enforced (§26).
 
 ## 6. How a merchant integrates it
 
-The merchant does not upload order exports into a third-party portal. Instead:
+The merchant does not upload order exports into a third-party portal, and does
+not need to hand-build a normalized view — the merchant's schema is unknown
+in advance, so DisputeCopilot discovers it instead of assuming it. Instead:
 
 1. The merchant deploys DisputeCopilot in its own environment.
 2. The merchant creates a dedicated database identity with `SELECT` access only.
-3. The merchant exposes a normalized `dispute_case_view`.
-4. The administrator configures the connector credentials and merchant time
+3. The administrator runs the schema-discovery wizard: it reads table/column
+   metadata only (never row data), pre-approves columns it recognizes as
+   order/payment/fulfillment/refund/communication fields, and leaves anything
+   unrecognized or sensitive-looking unapproved by default.
+4. The administrator reviews and confirms the approved table/column list once.
+   This is the only point where a human decides what the connector may ever
+   read.
+5. The administrator configures the connector credentials and merchant time
    zone locally.
-5. The analyst supplies only the order ID when starting an investigation.
-6. Application code runs one parameterized, allowlisted query for that order.
-7. The application stores an immutable case snapshot in its own local database.
+6. The analyst supplies only the order ID when starting an investigation.
+7. The Evidence Collector agent calls a bounded tool, `readApprovedTable(table,
+   orderId)`, once per approved table it judges relevant to the case. The tool
+   — not the model — builds the actual parameterized SQL, rejects any table or
+   column outside the approved list, and always scopes the read to one order.
+8. The application stores an immutable case snapshot in its own local database.
 
 The LLM receives no database credential, JDBC handle, general SQL tool, or
-ability to generate executable SQL.
+ability to generate executable SQL. It can only name which pre-approved table
+it wants read next; the query text itself is never something the model
+produces.
 
-Baseline query:
+Example of what the tool executes for one approved table (built by code, not
+by the model):
 
 ```sql
-SELECT *
-FROM dispute_case_view
+SELECT order_id, created_at, currency, amount
+FROM orders
 WHERE order_id = :orderId
 LIMIT 1;
 ```
 
-The normalized view covers order, payment, fulfillment, delivery proof,
-refund/replacement, and case-relevant communication fields.
+The same shape applies to every other approved table (payments, fulfillment,
+refunds, communications) — one call per table, each independently
+allowlist-checked and order-scoped. See
+[Architecture — Schema discovery and the bounded read tool](architecture.md#schema-discovery-and-the-bounded-read-tool)
+for the full mechanism.
 
 ## 7. MVP scope
 
@@ -175,7 +192,11 @@ refund/replacement, and case-relevant communication fields.
 - One read-only PostgreSQL connector profile, behind an interface that allows
   a future non-PostgreSQL implementation without changing workflow or agent
   code (see §28 — MySQL was previously and incorrectly listed as in-scope).
-- Exact order lookup through `dispute_case_view`.
+- A setup-time schema-discovery wizard and an administrator-approved
+  table/column allowlist, replacing a single hand-defined `dispute_case_view`
+  (see §28 addendum for why).
+- A bounded, allowlist-enforced read tool (`readApprovedTable`) that the
+  Evidence Collector calls per case, always scoped to one order.
 - A merchant-configured time zone used for all policy effective-date
   calculations.
 - PDF and TXT policy upload with immutable version and effective dates.
@@ -376,7 +397,8 @@ flowchart LR
     App --> API[REST API and session security]
     API --> Workflow[Durable workflow orchestrator]
     Workflow --> Connector[Read-only merchant connector]
-    Connector --> MerchantDB[(Merchant dispute_case_view)]
+    Collector -->|readApprovedTable per table| Connector
+    Connector --> MerchantDB[(Merchant DB, allowlisted tables only)]
     Workflow --> Collector[Evidence Collector]
     Workflow --> Retriever[Policy RAG]
     Workflow --> Reviewer[Evidence Reviewer]
@@ -482,8 +504,8 @@ Primary API areas:
 
 Non-negotiable controls:
 
-1. The connector identity has `SELECT` access only to the approved view.
-2. No LLM sees database credentials or receives an SQL tool.
+1. The connector identity has `SELECT` access only to the tables and columns an administrator approved during schema discovery.
+2. No LLM sees database credentials or receives an SQL tool; the only database-adjacent capability it has is naming which approved table to read next, always scoped to one order.
 3. All data supplied to agents is scoped to the current case.
 4. Uploaded policies and communications are untrusted data, never system
    instructions.
@@ -722,7 +744,7 @@ any release.
 | Backend | Spring Boot | Matches desired Java expertise and supports one-runtime deployment |
 | Agent integration | Spring AI | Java-native provider and structured-output integration |
 | Workflow | Deterministic persisted Java workflow | Easier recovery and audit than autonomous orchestration |
-| Data intake | Order ID plus read-only DB view | Removes manual evidence upload while constraining access |
+| Data intake | Order ID plus a bounded, schema-discovered read tool | Removes manual evidence upload and per-customer hand-built views, while the allowlist keeps access constrained (design review, §29) |
 | Policy knowledge | Merchant-wide versioned RAG | Correct policy depends on order date |
 | Model cost | Merchant BYOK, with a per-case cost ceiling | Avoids project-funded token spend and unbounded runaway cost |
 | Database/storage | Self-hosted DB plus local filesystem | Low cost and no new hosted data boundary |
@@ -735,7 +757,8 @@ any release.
 ## 27. Non-negotiable reminders for future sessions
 
 - Never call the customer a liar or claim fraud based on this system.
-- Never expose merchant database credentials or arbitrary SQL to an LLM.
+- Never expose merchant database credentials, a JDBC handle, or a SQL-text tool to an LLM. It may only name which administrator-approved table to read next — it must never be able to construct or supply query text.
+- Never let the connector allowlist be set or changed by anything other than an explicit administrator action; the model cannot expand its own access.
 - Never apply the current policy automatically to an older order without
   effective-date filtering, and never compute that effective date from a raw
   UTC timestamp — always convert to the merchant's configured time zone first.
@@ -784,5 +807,53 @@ in a later phase once that endpoint exists.
 The Oracle-specific CDLP compliance event in §24 was annotated as historical
 and inapplicable to this repository, rather than removed, so the investigation
 record is preserved for anyone who encounters a reference to it.
+
+## 29. Connector redesign: schema discovery replaces a fixed view (2026-09-25)
+
+The original design (§6, §28) assumed the merchant would expose one
+hand-defined `dispute_case_view` and the connector would run one fixed query
+against it. That assumption doesn't hold for a plug-and-play SaaS product:
+the merchant's schema isn't known in advance, and asking every customer to
+hand-build a normalized view is exactly the onboarding friction the product
+is supposed to remove.
+
+The connector is redesigned around **schema discovery plus a bounded runtime
+tool**, replacing the single fixed query:
+
+- **Setup, once, human in the loop:** the schema-discovery wizard reads table
+  and column metadata only (never row data), pre-approves fields it
+  recognizes as order/payment/fulfillment/refund/communication data, defaults
+  anything unrecognized or sensitive-looking to *not* approved, and an
+  administrator confirms or adjusts the result. This is the same "smart
+  helper" mechanism discussed earlier in the project's design conversations,
+  now formalized as the connector's actual onboarding path instead of a
+  hand-written view.
+- **Runtime, every case:** the Evidence Collector agent calls one tool,
+  `readApprovedTable(table, orderId)`. The tool — not the model — builds the
+  parameterized SQL, rejects anything off the allowlist, and always scopes
+  the read to the current order. The model can choose *which* approved table
+  is relevant to a given order; it cannot choose *what is approved*, supply
+  SQL text, or read outside the current case.
+
+**What this changes:** every "one parameterized query against
+`dispute_case_view`" reference in this handoff and in
+[architecture.md](architecture.md), [security-and-privacy.md](security-and-privacy.md),
+and [product-requirements.md](product-requirements.md) is superseded by the
+schema-discovery-plus-allowlist model. See
+[Architecture — Schema discovery and the bounded read tool](architecture.md#schema-discovery-and-the-bounded-read-tool)
+for the mechanism and [Security and privacy](security-and-privacy.md#llm-generated-sql-or-tool-escalation)
+for the updated threat-model entry.
+
+**What did not change:** the non-negotiable boundary is still that the model
+never sees credentials, never supplies SQL text, never decides what it is
+allowed to read, and never sees more than one order's data per call. Those
+properties held for the single fixed query and hold identically for the
+bounded multi-table tool — only the *shape* of what's approved changed, from
+one hand-built view to an admin-approved table/column list per merchant.
+
+**Why now:** the project is being positioned as a standalone product sold to
+multiple merchants (each self-hosted, no shared infrastructure — see §5),
+and a hand-built view per customer does not scale as an onboarding step for
+that model. A schema-discovery wizard does.
 
 Next action after this addendum is §25.

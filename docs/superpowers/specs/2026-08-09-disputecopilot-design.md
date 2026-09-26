@@ -77,16 +77,22 @@ Receives only case-scoped facts and retrieved policy excerpts required for a par
 
 ## 6. Merchant database integration
 
-The LLM has no database credentials, JDBC handle, or general SQL tool. The connector executes one code-owned parameterized query:
+The merchant's schema is not known in advance, so the connector does not assume a hand-built view. Instead, integration happens in two phases (see [Architecture — Schema discovery and the bounded read tool](../../architecture.md#schema-discovery-and-the-bounded-read-tool) for the full mechanism):
+
+**Setup, once:** a schema-discovery wizard reads table/column metadata only (never row data), pre-approves fields it recognizes as order/payment/fulfillment/refund/communication data, and defaults anything unrecognized or sensitive-looking to not approved. An administrator reviews and confirms the allowlist.
+
+**Runtime, per case:** the LLM has no database credentials, JDBC handle, or general SQL tool. The Evidence Collector calls one bounded tool, `readApprovedTable(table, orderId)`, once per approved table it judges relevant. The tool — not the model — builds the parameterized SQL, rejects anything off the allowlist, and always scopes the read to one order:
 
 ```sql
-SELECT *
-FROM dispute_case_view
+-- one of several calls the tool may make for a single case,
+-- each independently allowlist-checked
+SELECT order_id, created_at, currency, amount
+FROM orders
 WHERE order_id = :orderId
 LIMIT 1;
 ```
 
-The merchant exposes `dispute_case_view` with normalized fields covering:
+Tables merchants typically approve cover:
 
 - Order identifier, creation time, currency, and amounts.
 - Payment identifier, status, processor reference, and timestamps.
@@ -94,7 +100,7 @@ The merchant exposes `dispute_case_view` with normalized fields covering:
 - Refund or replacement records.
 - Case-relevant customer communications.
 
-The connector copies only the matching order into a `CaseBundle`. It records query template version, timestamp, duration, and row count without logging secrets or unrelated customer data.
+The connector assembles the results of these calls into a `CaseBundle`. It records, per call, the table, columns, timestamp, duration, and row count without logging secrets or unrelated customer data.
 
 The connector is defined behind a `MerchantConnector` interface with a single PostgreSQL implementation in the MVP. A MySQL implementation is a possible future addition, not MVP scope (see [Product requirements](../../product-requirements.md)).
 
@@ -366,3 +372,7 @@ A design review before implementation start found nine gaps, all resolved in thi
 Two minor gaps were also addressed: a minimum golden-dataset size was added ([RAG and evaluation](../../rag-and-evaluation.md)), and duplicate-order-ID case creation now returns the existing non-terminal case instead of creating a second investigation ([API contract](../../api-contract.md)).
 
 None of these changes affect Plan 1 (the case-intake vertical slice): Plan 1 has no RAG, agents, cost ceiling, or timezone-dependent behavior in scope, and its idempotency design (per `Idempotency-Key`, not per `orderId`) does not conflict with the duplicate-order-ID rule above, which governs a later phase. Plan 1 is unchanged.
+
+## 20. Connector redesign addendum (2026-09-25)
+
+§6 above was rewritten to replace the single-view, single-query connector with a two-phase model: a setup-time schema-discovery wizard that produces an administrator-approved table/column allowlist, and a runtime tool, `readApprovedTable(table, orderId)`, that the Evidence Collector calls per approved table. The tool still builds all SQL in code, still rejects anything off the allowlist, and still scopes every read to one order — the model gained the ability to choose *which* approved table is relevant, not the ability to decide what is approved or to see outside the current case. Full rationale in [project-context-handoff.md §29](../../project-context-handoff.md). Plan 1 is unaffected by this change for the same reason given in §19: it has no connector-driven data assembly in scope yet.

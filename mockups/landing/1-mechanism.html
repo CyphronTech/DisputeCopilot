@@ -1,0 +1,47 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="shared.css"><style>
+  body { width: 1600px; }
+  .section { background: var(--bg-2); }
+  .head-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 64px; }
+  .head-row h2 { font-size: 34px; font-weight: 700; max-width: 560px; }
+  .head-row p { color: var(--text-3); font-size: 14px; max-width: 300px; text-align: right; }
+  .rail { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .step { padding: 0 28px 0 0; border-right: 1px solid var(--border); }
+  .step:last-child { border-right: none; padding-right: 0; }
+  .step .num { font-family: var(--font-mono); font-size: 13px; color: var(--accent); margin-bottom: 22px; }
+  .step h3 { font-size: 17px; font-weight: 600; margin-bottom: 10px; line-height: 1.3; }
+  .step p { font-size: 13.5px; color: var(--text-3); line-height: 1.6; }
+  .step code { font-family: var(--font-mono); font-size: 12px; color: var(--text-2); background: var(--surface); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border); }
+</style></head>
+<body>
+<div class="section">
+  <div class="wrap">
+    <div class="head-row">
+      <h2>Four steps, no discretion for the model to expand its own reach.</h2>
+      <p>Each stage is a bounded Spring service with a typed input and output — not an agent with open-ended tools.</p>
+    </div>
+    <div class="rail">
+      <div class="step">
+        <div class="num">01 / INTAKE</div>
+        <h3>An analyst submits an order ID</h3>
+        <p>Nothing else is uploaded. No CSV exports, no pasted order data — just the identifier the analyst already has.</p>
+      </div>
+      <div class="step">
+        <div class="num">02 / CONNECTOR</div>
+        <h3>One query reads <code>dispute_case_view</code></h3>
+        <p>A code-owned, parameterized statement — the same one every time, on a read-only database identity.</p>
+      </div>
+      <div class="step">
+        <div class="num">03 / RETRIEVAL</div>
+        <h3>Policy filtered to the order date</h3>
+        <p>Effective-date and document-type filters run before vector search, in the merchant's own time zone.</p>
+      </div>
+      <div class="step">
+        <div class="num">04 / APPROVAL</div>
+        <h3>A human signs off before export</h3>
+        <p>The draft is advisory until an analyst approves an exact revision. The hash is recorded, not assumed.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

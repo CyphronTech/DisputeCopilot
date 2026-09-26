@@ -38,7 +38,8 @@ flowchart TB
     Workflow --> RAG
     Workflow --> Reports
     API --> Audit
-    Connector -->|Parameterized, read-only| MerchantDB
+    Agents -->|Selects an approved table per call| Connector
+    Connector -->|Parameterized, read-only, allowlist-checked| MerchantDB
     Agents --> Model
     RAG --> Model
     App --> Postgres
@@ -70,7 +71,8 @@ flowchart TB
 |---|---|---|
 | `AuthService` | Users, password hashing, sessions, roles | PostgreSQL, Spring Security |
 | `SecretService` | Encrypt, mask, and retrieve local secrets | Installation key, PostgreSQL |
-| `ConnectorService` | Execute one allowlisted order lookup and normalize results | Merchant DB, audit service |
+| `ConnectorService` | Execute an allowlist-checked, parameterized read of one admin-approved table for one order; reject anything else | Merchant DB, audit service |
+| `SchemaDiscoveryService` | Introspect merchant schema metadata at setup and store the administrator-approved table/column allowlist | Merchant DB (metadata only), PostgreSQL |
 | `CaseService` | Case lifecycle, ownership, snapshots, edits, approval | PostgreSQL, filesystem |
 | `WorkflowService` | Durable states, job claiming, retry, idempotency, cost-ceiling enforcement | PostgreSQL |
 | `EvidenceCollectorAgent` | Convert case facts into sourced evidence | Spring AI |
@@ -104,6 +106,29 @@ com.disputecopilot
 ```
 
 Packages expose application-facing interfaces and keep persistence/model-provider details behind adapters. `ConnectorService` is defined behind a `MerchantConnector` interface with one implementation (`PostgresMerchantConnector`) in the MVP; a future MySQL implementation can be added without changing workflow or agent code, but is out of MVP scope (see [Product requirements](product-requirements.md)).
+
+## Schema discovery and the bounded read tool
+
+Merchant schemas are not known in advance, so the connector cannot ship with a hand-written query per customer. Discovery and execution are split into two phases that never overlap:
+
+### Setup-time: discovery and approval (human in the loop, once)
+
+1. `SchemaDiscoveryService` connects with the read-only connector identity and reads catalog metadata only — table and column names and types via `information_schema` — never row data.
+2. It proposes a default allowlist: columns whose names match known patterns (order, payment, fulfillment, refund, communication fields) are pre-checked; anything it does not recognize, including anything that looks sensitive (`password`, `ssn`, `salary`, `internal`, `admin`, `token`), is left unchecked. When unsure, the default is always "not approved."
+3. An administrator reviews the full table/column list — including everything the service left unchecked — and adjusts it. Nothing becomes readable without this explicit step.
+4. The confirmed selection is stored as `table_allowlist_entry` rows (below), scoped to one connector profile. This step can be re-run later if the merchant's schema changes; it never runs automatically.
+
+### Runtime: the bounded read tool (every case)
+
+The Evidence Collector agent is given exactly one tool, `readApprovedTable(table, orderId)` — not a SQL execution tool, not a JDBC handle, and no way to supply query text:
+
+- The tool rejects any `table` not present in `table_allowlist_entry` for the active connector profile. Only columns marked approved for that table are ever selected.
+- Every call is scoped to the current order: the generated statement always includes the equivalent of `WHERE order_id = :orderId`, so a full-table read is not constructible through this tool.
+- The application builds the SQL itself from the validated table/column identifiers and a bound parameter; the model never contributes SQL text, only the name of the table it wants to read next.
+- Execution is read-only-transaction, row-limited, and time-limited, matching the constraints already described for the connector in [Security and privacy](security-and-privacy.md).
+- Every call is written to `connector_query_audit` — table, columns, row count, case ID, timestamp — regardless of whether the model called it once or several times for one case.
+
+This keeps the property that mattered from the original single-query design — the model cannot expand its own access, cannot see unapproved data, and cannot execute arbitrary SQL — while allowing the agent to read from whichever approved tables are actually relevant to a given order, across merchants with different schemas.
 
 ## Workflow state and recovery
 
@@ -195,7 +220,7 @@ Major tables:
 
 - `app_user`, `user_role`, `user_session`
 - `installation_config` (includes the merchant's IANA time zone used for policy effective-date calculations), `encrypted_secret`
-- `connector_profile` (named plural by relational convention; a unique partial index enforces exactly one row per deployment for the MVP — this is a naming convention, not a hint of multi-profile support), `connector_query_audit`
+- `connector_profile` (named plural by relational convention; a unique partial index enforces exactly one row per deployment for the MVP — this is a naming convention, not a hint of multi-profile support), `table_allowlist_entry` (one row per admin-approved table/column, scoped to a connector profile), `connector_query_audit`
 - `case_record`, `case_snapshot`, `workflow_job`, `workflow_transition`
 - `evidence_item`, `review_result`, `report_revision`, `approval`
 - `policy_document`, `policy_chunk`, `case_policy_citation`
@@ -243,6 +268,7 @@ Editing an approved report creates a new revision and invalidates the previous a
 |---|---|---|
 | User input | Unknown order ID | Show actionable error; no retry |
 | Connector transient | DB timeout | Bounded retry, then failed state |
+| Connector policy violation | Agent requests a table not on the allowlist | Reject the call before execution; audit event; manual review |
 | Model transient | Rate limit | Respect retry delay; bounded retry |
 | Model validation | Missing citations | One constrained repair attempt, then manual review |
 | Cost ceiling | Cumulative case spend would exceed the configured limit | Stop calling the model; manual review; audit event |

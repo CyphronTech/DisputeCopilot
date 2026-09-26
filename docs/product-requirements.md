@@ -17,6 +17,7 @@ Chargeback and delivery disputes require analysts to assemble facts from order, 
 - Installs or owns the deployment.
 - Creates users and assigns roles.
 - Configures the model provider and read-only merchant database connector.
+- Runs the schema-discovery wizard and approves which tables and columns the connector may read.
 - Sets the merchant's operating time zone used for policy effective-date calculations.
 - Uploads, versions, activates, and retires policy documents.
 - Reviews health and audit information.
@@ -32,10 +33,10 @@ Chargeback and delivery disputes require analysts to assemble facts from order, 
 ## MVP user journey
 
 1. An administrator completes local setup, sets the merchant time zone, and tests the merchant database connection.
-2. The administrator uploads text-based PDF or TXT policies with version and effective dates.
-3. An analyst enters an order ID for a product-not-received dispute.
-4. The connector retrieves a case-scoped data bundle from `dispute_case_view`.
-5. The Evidence Collector produces a sourced evidence manifest and timeline.
+2. The administrator runs the schema-discovery wizard, which lists the merchant's tables and columns and pre-ticks the ones it recognizes as order/payment/fulfillment/refund/communication data; the administrator confirms or adjusts the selection once.
+3. The administrator uploads text-based PDF or TXT policies with version and effective dates.
+4. An analyst enters an order ID for a product-not-received dispute.
+5. The Evidence Collector calls the bounded read tool per approved table to assemble a case-scoped data bundle, then produces a sourced evidence manifest and timeline.
 6. The policy retriever selects policy chunks active on the order date, computed in the merchant's configured time zone.
 7. The Evidence Reviewer identifies supported facts, contradictions, gaps, and a neutral recommendation.
 8. The Report Generator drafts a cited response and evidence index.
@@ -49,7 +50,9 @@ Chargeback and delivery disputes require analysts to assemble facts from order, 
 - `MERCHANT_ADMIN` and `DISPUTE_ANALYST` roles.
 - One merchant per deployment.
 - One dispute type: product not received.
-- One read-only relational database connector profile per deployment, connecting to a PostgreSQL merchant source database through a normalized view contract.
+- One read-only relational database connector profile per deployment, connecting to a PostgreSQL merchant source database.
+- A setup-time schema-discovery wizard that lists the merchant's tables and columns and lets an administrator approve which ones the connector may read, with unclear items defaulting to not approved (see [Architecture](architecture.md#schema-discovery-and-the-bounded-read-tool)).
+- A bounded read tool, scoped to the approved tables/columns and always filtered to one order, that the Evidence Collector calls at runtime. The tool executes parameterized reads it builds itself; it never executes SQL text supplied by the model.
 - A merchant-configured IANA time zone used to convert order timestamps into the calendar date used for policy effective-date filtering.
 - Order lookup by exact order ID.
 - Versioned PDF and TXT policy upload.
@@ -78,16 +81,17 @@ Chargeback and delivery disputes require analysts to assemble facts from order, 
 ## Acceptance criteria
 
 1. An analyst can enter a valid order ID and receive a complete case view without manually uploading order data.
-2. The database connector cannot execute LLM-generated or user-supplied SQL.
-3. Every collected fact has a source reference and observation timestamp, and structured facts (order, payment, fulfillment, refund fields) match the source record's value exactly.
-4. Every policy-dependent statement cites document title, version, page, and chunk ID.
-5. Retrieval excludes policies that were not effective on the order date, where the order date is computed in the merchant's configured time zone, not UTC.
-6. Missing applicable policy produces `MANUAL_REVIEW_REQUIRED` rather than a model-generated recommendation.
-7. A generated report cannot be exported as approved until a human confirms it.
-8. Restarting the application resumes non-terminal investigations from persisted workflow state.
-9. Model and connector secrets never appear in API responses, application logs, or agent prompts.
-10. A case whose per-case model-spend ceiling is exceeded stops calling the model and transitions to `MANUAL_REVIEW_REQUIRED` with an audit event, rather than retrying indefinitely.
-11. The reference RAG evaluation meets the thresholds defined in [RAG and evaluation](rag-and-evaluation.md).
+2. The connector never executes SQL text authored by the model. At runtime the model may only select which administrator-approved table to read for the current order; the application builds and parameterizes the actual query.
+3. Every table and column the connector can read was explicitly approved by an administrator during setup; nothing not on that allowlist is queryable, regardless of what the model requests.
+4. Every collected fact has a source reference and observation timestamp, and structured facts (order, payment, fulfillment, refund fields) match the source record's value exactly.
+5. Every policy-dependent statement cites document title, version, page, and chunk ID.
+6. Retrieval excludes policies that were not effective on the order date, where the order date is computed in the merchant's configured time zone, not UTC.
+7. Missing applicable policy produces `MANUAL_REVIEW_REQUIRED` rather than a model-generated recommendation.
+8. A generated report cannot be exported as approved until a human confirms it.
+9. Restarting the application resumes non-terminal investigations from persisted workflow state.
+10. Model and connector secrets never appear in API responses, application logs, or agent prompts.
+11. A case whose per-case model-spend ceiling is exceeded stops calling the model and transitions to `MANUAL_REVIEW_REQUIRED` with an audit event, rather than retrying indefinitely.
+12. The reference RAG evaluation meets the thresholds defined in [RAG and evaluation](rag-and-evaluation.md).
 
 ## Product success measures
 

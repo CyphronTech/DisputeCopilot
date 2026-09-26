@@ -24,21 +24,22 @@ Self-hosting changes the data processor boundary; it does not remove the need fo
 **Controls:**
 
 - Dedicated database identity with `SELECT` only.
-- Access limited to `dispute_case_view`.
-- One parameterized query owned by code.
+- Access limited to tables and columns an administrator explicitly approved during the setup-time schema-discovery step (see [Architecture — Schema discovery and the bounded read tool](architecture.md#schema-discovery-and-the-bounded-read-tool)); nothing else is queryable regardless of what any caller requests.
+- Every read is parameterized and code-constructed — never string-built from model output.
 - Read-only transaction mode, query timeout, and row limit.
 - Startup privilege inspection and connector test.
-- Query audit containing template version and row count.
+- Query audit containing table, columns, and row count for every call.
 
 ### LLM-generated SQL or tool escalation
 
-**Risk:** Prompt output attempts arbitrary database access.
+**Risk:** Prompt output attempts arbitrary database access, or expands its own reach over time.
 
 **Controls:**
 
-- No SQL tool or JDBC object exposed to any agent.
-- Connector completes before the first agent and emits a typed `CaseBundle`.
-- Agent tool lists are empty in the MVP unless a future tool receives separately reviewed authorization.
+- The agent is never given a SQL tool, a JDBC object, or any way to supply query text. Its only database-adjacent tool is `readApprovedTable(table, orderId)`, which accepts a table name and returns rows — it does not accept or execute SQL.
+- That tool enforces the administrator-approved allowlist itself, in code, on every call; the model cannot request a table or column it has not been granted, and cannot change what is granted.
+- Every table read is scoped to a single order ID; there is no tool call that returns more than one order's data.
+- What changed from the original design: the model may now choose *which* approved table to read and *when*, across a merchant-specific schema. It was never given, and still is not given, the ability to decide *what is approved* or to read outside one case's scope. The allowlist is set once by a human at setup, not by the model at runtime.
 
 ### Prompt injection in policies or communications
 
@@ -182,6 +183,7 @@ Audit events are append-only application records for:
 
 - Login success/failure and user changes.
 - Secret or connector configuration changes without secret values.
+- Schema-discovery allowlist changes (tables/columns approved or revoked, and by whom).
 - Merchant time zone configuration changes.
 - Policy upload, activation, and retirement.
 - Merchant DB query execution.
@@ -194,7 +196,7 @@ Audit events are append-only application records for:
 
 Before an MVP release:
 
-1. Verify the connector identity cannot insert, update, delete, or select outside the approved view.
+1. Verify the connector identity cannot insert, update, delete, or select outside the administrator-approved table/column allowlist, and that `readApprovedTable` rejects a table/column not on it even when called directly in a test.
 2. Run authorization tests for every endpoint and role.
 3. Run seeded-secret leakage tests across logs, responses, prompts, and PDFs, including the environment-variable override path if enabled.
 4. Run path traversal and malformed document tests.

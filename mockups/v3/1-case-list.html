@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>DisputeCopilot — Cases</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  .filters { display: flex; gap: 4px; margin-bottom: 16px; }
+  .order-id { font-family: var(--font-mono); color: var(--text); font-weight: 500; }
+  .customer { color: var(--text-2); }
+  .customer-sub { display:block; font-size:11px; color:var(--text-3); margin-top:1px; }
+  .date { color: var(--text-3); font-family: var(--font-mono); font-size: 12px; }
+  .rec-cell { display: flex; align-items: center; gap: 8px; }
+  .rec-cell .rlabel { font-size: 11.5px; color: var(--text-2); font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand-row">
+      <div class="brand-mark">DC</div>
+      <div class="brand-text">
+        <div class="brand-name">DisputeCopilot</div>
+        <div class="brand-sub">Northwind Retail</div>
+      </div>
+    </div>
+    <div class="workspace-pick">Production<svg><use href="icons.svg#i-chevron-down"/></svg></div>
+    <nav class="nav">
+      <a class="active" href="#"><svg><use href="icons.svg#i-cases"/></svg><span class="label">Cases</span><span class="count">128</span></a>
+      <a href="#"><svg><use href="icons.svg#i-policy"/></svg><span class="label">Policy Library</span></a>
+      <a href="#"><svg><use href="icons.svg#i-audit"/></svg><span class="label">Audit</span></a>
+      <a href="#"><svg><use href="icons.svg#i-setup"/></svg><span class="label">Setup</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="profile-row">
+        <div class="avatar">AR</div>
+        <div class="profile-text">
+          <div class="profile-name">Aditi Rao</div>
+          <div class="profile-role">Dispute Analyst</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="content">
+    <div class="topbar">
+      <button class="icon-btn"><svg><use href="icons.svg#i-menu"/></svg></button>
+      <div class="crumbs"><span class="cur">Cases</span></div>
+      <div class="topbar-spacer"></div>
+      <div class="search-box"><svg><use href="icons.svg#i-search"/></svg><span>Search order ID, customer&hellip;</span><span class="kbd">⌘K</span></div>
+      <button class="icon-btn"><svg><use href="icons.svg#i-bell"/></svg></button>
+      <div class="topbar-divider"></div>
+      <div class="topbar-profile"><div class="avatar">AR</div><svg><use href="icons.svg#i-chevron-down"/></svg></div>
+    </div>
+    <main class="main">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Operations</p>
+          <h1 class="page-title">Dispute cases</h1>
+          <p class="page-sub">Product-not-received investigations</p>
+        </div>
+        <div class="head-actions">
+          <a class="text-link" href="#">Export list</a>
+          <button class="btn btn-primary"><svg><use href="icons.svg#i-plus"/></svg>New investigation</button>
+        </div>
+      </div>
+
+      <div class="metric-strip">
+        <div class="metric">
+          <div class="l"><svg><use href="icons.svg#i-cases"/></svg>Open cases</div>
+          <div class="n">128</div>
+        </div>
+        <div class="metric">
+          <div class="l"><svg><use href="icons.svg#i-clock"/></svg>Awaiting approval</div>
+          <div class="n">6</div>
+        </div>
+        <div class="metric">
+          <div class="l"><svg><use href="icons.svg#i-alert"/></svg>Manual review</div>
+          <div class="n">3</div>
+        </div>
+        <div class="metric">
+          <div class="l"><svg><use href="icons.svg#i-check"/></svg>Exported without edits</div>
+          <div class="n">91.4<small>%</small></div>
+        </div>
+      </div>
+
+      <div class="filters">
+        <span class="chip active">All states</span>
+        <span class="chip">Awaiting approval</span>
+        <span class="chip">Manual review</span>
+        <span class="chip">Exported</span>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>Order</th><th>Customer</th><th>State</th><th>Recommendation</th><th>Created</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="order-id">ORD-2026-1042</td>
+              <td class="customer">Priya Nair<span class="customer-sub">priya.nair@mail.com</span></td>
+              <td><span class="tag tag-accent"><span class="dot"></span>AWAITING_HUMAN_APPROVAL</span></td>
+              <td class="rec-cell"><span class="rlabel">CONTEST</span><span class="confidence high"><span class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></span></td>
+              <td class="date">Sep 23, 14:02</td>
+            </tr>
+            <tr>
+              <td class="order-id">ORD-2026-1039</td>
+              <td class="customer">Kabir Sethi<span class="customer-sub">kabir.sethi@mail.com</span></td>
+              <td><span class="tag tag-warn"><span class="dot"></span>MANUAL_REVIEW_REQUIRED</span></td>
+              <td class="rec-cell"><span class="rlabel" style="color:var(--text-3)">—</span></td>
+              <td class="date">Sep 23, 11:47</td>
+            </tr>
+            <tr>
+              <td class="order-id">ORD-2026-1031</td>
+              <td class="customer">Meera Iyer<span class="customer-sub">meera.iyer@mail.com</span></td>
+              <td><span class="tag tag-success"><span class="dot"></span>EXPORTED</span></td>
+              <td class="rec-cell"><span class="rlabel">ACCEPT</span><span class="confidence high"><span class="bars"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></span></td>
+              <td class="date">Sep 22, 17:10</td>
+            </tr>
+            <tr>
+              <td class="order-id">ORD-2026-1028</td>
+              <td class="customer">Arjun Verma<span class="customer-sub">arjun.verma@mail.com</span></td>
+              <td><span class="tag tag-accent"><span class="dot"></span>REVIEWING_EVIDENCE</span></td>
+              <td class="rec-cell"><span class="rlabel" style="color:var(--text-3)">—</span></td>
+              <td class="date">Sep 22, 09:33</td>
+            </tr>
+            <tr>
+              <td class="order-id">ORD-2026-1019</td>
+              <td class="customer">Sana Sheikh<span class="customer-sub">sana.sheikh@mail.com</span></td>
+              <td><span class="tag tag-neutral"><span class="dot"></span>FAILED</span></td>
+              <td class="rec-cell"><span class="rlabel" style="color:var(--text-3)">—</span></td>
+              <td class="date">Sep 21, 20:55</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

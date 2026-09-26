@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>DisputeCopilot — Cases</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .toolbar input {
+    background: var(--surface);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--r-input);
+    color: var(--text);
+    padding: 9px 12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    width: 260px;
+  }
+  .toolbar input::placeholder { color: var(--text-3); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-3);
+    font-weight: 500;
+    padding: 0 16px 10px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--hairline);
+    font-size: 13.5px;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  .order-id { font-family: var(--font-mono); color: var(--text); }
+  .customer { color: var(--text-2); }
+  .date { color: var(--text-3); font-family: var(--font-mono); font-size: 12.5px; }
+  .stat-row { display: flex; gap: 28px; margin-bottom: 26px; }
+  .stat { }
+  .stat .n { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .stat .l { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="brand-name">DisputeCopilot</div>
+        <div class="brand-sub">Northwind Retail</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="active" href="#"><span class="dot"></span>Cases</a>
+      <a href="#"><span class="dot"></span>Policy Library</a>
+      <a href="#"><span class="dot"></span>Audit</a>
+      <a href="#"><span class="dot"></span>Setup</a>
+    </nav>
+    <div class="nav-footer">Signed in as A. Rao<br>Dispute Analyst</div>
+  </aside>
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Dispute cases</h1>
+        <p class="page-sub">Product-not-received investigations</p>
+      </div>
+      <div class="toolbar">
+        <input type="text" placeholder="Order ID, e.g. ORD-2026-1042">
+        <button class="btn btn-primary">New investigation</button>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="n">128</div><div class="l">Open cases</div></div>
+      <div class="stat"><div class="n">6</div><div class="l">Awaiting approval</div></div>
+      <div class="stat"><div class="n">3</div><div class="l">Manual review</div></div>
+      <div class="stat"><div class="n">94%</div><div class="l">Exported without edits</div></div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Customer</th>
+            <th>State</th>
+            <th>Recommendation</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="order-id">ORD-2026-1042</td>
+            <td class="customer">Priya Nair</td>
+            <td><span class="badge badge-accent"><span class="dot"></span>AWAITING_HUMAN_APPROVAL</span></td>
+            <td class="customer">CONTEST · 0.88</td>
+            <td class="date">Sep 23, 14:02</td>
+          </tr>
+          <tr>
+            <td class="order-id">ORD-2026-1039</td>
+            <td class="customer">Kabir Sethi</td>
+            <td><span class="badge badge-warn"><span class="dot"></span>MANUAL_REVIEW_REQUIRED</span></td>
+            <td class="customer">—</td>
+            <td class="date">Sep 23, 11:47</td>
+          </tr>
+          <tr>
+            <td class="order-id">ORD-2026-1031</td>
+            <td class="customer">Meera Iyer</td>
+            <td><span class="badge badge-success"><span class="dot"></span>EXPORTED</span></td>
+            <td class="customer">ACCEPT · 0.94</td>
+            <td class="date">Sep 22, 17:10</td>
+          </tr>
+          <tr>
+            <td class="order-id">ORD-2026-1028</td>
+            <td class="customer">Arjun Verma</td>
+            <td><span class="badge badge-accent"><span class="dot"></span>REVIEWING_EVIDENCE</span></td>
+            <td class="customer">—</td>
+            <td class="date">Sep 22, 09:33</td>
+          </tr>
+          <tr>
+            <td class="order-id">ORD-2026-1019</td>
+            <td class="customer">Sana Sheikh</td>
+            <td><span class="badge badge-neutral"><span class="dot"></span>FAILED</span></td>
+            <td class="customer">—</td>
+            <td class="date">Sep 21, 20:55</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+</body>
+</html>

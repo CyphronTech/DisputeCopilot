@@ -1,0 +1,5 @@
+backend/target/
+backend/run.log
+frontend/run.log
+*.log
+.env

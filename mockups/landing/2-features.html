@@ -1,0 +1,60 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="shared.css"><style>
+  body { width: 1600px; }
+  .head { max-width: 640px; margin-bottom: 56px; }
+  .head h2 { font-size: 34px; font-weight: 700; margin-bottom: 14px; }
+  .head p { color: var(--text-3); font-size: 14.5px; line-height: 1.6; }
+  .bento { display: grid; grid-template-columns: 1.4fr 1fr 1fr; grid-template-rows: auto auto; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+  .tile { background: var(--bg); padding: 32px; }
+  .tile.big { grid-row: span 2; background: var(--surface); }
+  .tile h3 { font-size: 17px; font-weight: 600; margin-bottom: 10px; }
+  .tile p { font-size: 13.5px; color: var(--text-3); line-height: 1.65; }
+  .tile .tag { font-family: var(--font-mono); font-size: 10.5px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px; display: block; }
+  .tile.big .visual { margin-top: 22px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg-2); padding: 14px 16px; }
+  .tile.big .visual .l1 { color: var(--text-3); }
+  .tile.big .visual .l2 { color: var(--accent); }
+  .tile.big .visual .l3 { color: var(--text-2); }
+  .tile.big .visual div { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; }
+</style></head>
+<body>
+<div class="section">
+  <div class="wrap">
+    <div class="head">
+      <h2>What's deliberately missing is the point.</h2>
+      <p>No SQL tool. No unbounded chat history. No recommendation without a citation. The constraints are the product, not an afterthought.</p>
+    </div>
+    <div class="bento">
+      <div class="tile big">
+        <span class="tag">Connector</span>
+        <h3>No SQL access for the model, ever</h3>
+        <p>The LLM never receives a database credential, a JDBC handle, or a tool to write queries. One statement runs before the first model call, and it's the same statement every time.</p>
+        <div class="visual">
+          <div class="l1">-- the only query DisputeCopilot runs</div>
+          <div class="l3">SELECT * FROM <span class="l2">dispute_case_view</span></div>
+          <div class="l3">WHERE order_id = :orderId LIMIT 1;</div>
+        </div>
+      </div>
+      <div class="tile">
+        <span class="tag">Retrieval</span>
+        <h3>Effective-dated policy matching</h3>
+        <p>Chunks are filtered by document type and order date, in your configured time zone, before similarity search runs at all.</p>
+      </div>
+      <div class="tile">
+        <span class="tag">Validation</span>
+        <h3>Citations checked, not trusted</h3>
+        <p>Every quoted excerpt is confirmed against the stored chunk. Unverifiable claims are rejected, not softened.</p>
+      </div>
+      <div class="tile">
+        <span class="tag">Audit</span>
+        <h3>Every action, timestamped</h3>
+        <p>Queries, model calls, approvals, and content hashes are logged as they happen — an append-only record, not a summary.</p>
+      </div>
+      <div class="tile">
+        <span class="tag">Deployment</span>
+        <h3>Runs on your infrastructure</h3>
+        <p>Docker Compose, your database, your model provider key. We never operate a hosted copy of your data.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

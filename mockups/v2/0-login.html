@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>DisputeCopilot — Sign in</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .auth-card { width: 380px; padding: 34px 32px 28px; text-align: left; box-shadow: var(--shadow-lg); }
+  .auth-brand { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-bottom: 26px; }
+  .auth-brand .brand-mark { width: 44px; height: 44px; border-radius: 12px; font-size: 17px; }
+  .auth-title { font-size: 18px; font-weight: 600; margin: 0; }
+  .auth-sub { font-size: 12.5px; color: var(--text-3); margin: 4px 0 0; text-align: center; }
+  .field { margin-bottom: 14px; }
+  .field label { font-size: 12px; color: var(--text-2); display: block; margin-bottom: 6px; }
+  .input-wrap { position: relative; }
+  .input-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--text-3); }
+  .input-wrap input {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--hairline-strong);
+    border-radius: var(--r-sm); color: var(--text); padding: 10px 12px 10px 34px; font-size: 13px;
+  }
+  .field-row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 20px; }
+  .field-row a { font-size: 12px; color: var(--accent); text-decoration: none; }
+  .auth-card .btn-primary { width: 100%; justify-content: center; padding: 10px; }
+  .auth-foot { text-align: center; margin-top: 22px; font-size: 11.5px; color: var(--text-3); }
+  .env-chip { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); }
+  .env-chip .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); }
+</style>
+</head>
+<body>
+<div class="card auth-card">
+  <div class="auth-brand">
+    <div class="brand-mark">DC</div>
+    <div>
+      <h1 class="auth-title">Sign in to DisputeCopilot</h1>
+      <p class="auth-sub">Northwind Retail · self-hosted deployment</p>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Email</label>
+    <div class="input-wrap">
+      <svg><use href="icons.svg#i-user"/></svg>
+      <input value="aditi.rao@northwind.example">
+    </div>
+  </div>
+  <div class="field">
+    <label>Password</label>
+    <div class="input-wrap">
+      <svg><use href="icons.svg#i-lock"/></svg>
+      <input type="password" value="••••••••••••">
+    </div>
+  </div>
+  <div class="field-row">
+    <span style="font-size:12px;color:var(--text-3)">Session expires after 12h idle</span>
+    <a href="#">Forgot?</a>
+  </div>
+  <button class="btn btn-primary">Sign in</button>
+
+  <div class="env-chip"><span class="dot"></span>Connected to local instance · v0.4.0</div>
+</div>
+<div class="auth-foot" style="position:fixed;bottom:24px;left:0;right:0;">Data stays on this machine. Nothing is sent to CyphronTech.</div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: disputecopilot
+  datasource:
+    url: jdbc:postgresql://localhost:5432/disputecopilot
+    username: disputecopilot
+    password: disputecopilot
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+app:
+  admin:
+    email: ${ADMIN_EMAIL:admin@disputecopilot.local}
+    password: ${ADMIN_PASSWORD:changeme}
+  secret-key: ${SECRET_KEY:dev-only-secret-key-change-in-prod}
+
+# Schema-discovery allowlist stand-in for the MVP demo profile.
+# Real schema discovery (Architecture §Schema discovery and the bounded read tool)
+# will replace this with rows an admin approves through the setup wizard.
+connector:
+  allowlist:
+    orders: [order_id, created_at, currency, amount]
+    payments: [order_id, status, processor_ref, paid_at]
+    fulfillment: [order_id, carrier, awb, shipped_at]
+    refunds: [order_id, status, amount, decided_at]
+    communications: [order_id, occurred_at, body]

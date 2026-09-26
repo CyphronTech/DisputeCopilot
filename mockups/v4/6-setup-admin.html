@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>DisputeCopilot — Setup</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  .tabs { display: flex; gap: 4px; margin-bottom: 22px; border-bottom: 1px solid var(--hairline); }
+  .tabs span { padding: 10px 4px; margin-right: 22px; font-size: 13px; color: var(--text-3); border-bottom: 2px solid transparent; }
+  .tabs span.active { color: var(--text); border-color: var(--accent); font-weight: 500; }
+  .section { padding: 24px 26px; margin-bottom: 16px; }
+  .section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .section-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; flex: none; }
+  .section-icon svg { width: 16px; height: 16px; color: var(--accent); }
+  .section h2 { font-size: 14.5px; font-weight: 600; margin: 0; }
+  .section p.desc { font-size: 12.5px; color: var(--text-3); margin: 3px 0 20px 44px; }
+  .row { display: grid; grid-template-columns: 170px 1fr; gap: 14px; align-items: center; padding: 9px 0 9px 44px; }
+  label { font-size: 12.5px; color: var(--text-2); }
+  input, select {
+    background: var(--surface-2); border: 1px solid var(--hairline-strong); border-radius: var(--r-sm);
+    color: var(--text); padding: 9px 12px; font-size: 13px; font-family: var(--font-mono); width: 100%;
+  }
+  select { font-family: var(--font); }
+  .row-actions { display: flex; justify-content: space-between; align-items: center; margin: 16px 0 0 44px; padding-top: 16px; border-top: 1px solid var(--hairline); }
+  .status { font-size: 12px; display: flex; align-items: center; gap: 6px; color: var(--text-2); }
+  .status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+  .status.pending .dot { background: var(--text-3); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand-row">
+      <div class="brand-mark">DC</div>
+      <div class="brand-text"><div class="brand-name">DisputeCopilot</div><div class="brand-sub">Northwind Retail</div></div>
+    </div>
+    <div class="workspace-pick">Production<svg><use href="icons.svg#i-chevron-down"/></svg></div>
+    <nav class="nav">
+      <a href="#"><svg><use href="icons.svg#i-cases"/></svg><span class="label">Cases</span><span class="count">128</span></a>
+      <a href="#"><svg><use href="icons.svg#i-policy"/></svg><span class="label">Policy Library</span></a>
+      <a href="#"><svg><use href="icons.svg#i-audit"/></svg><span class="label">Audit</span></a>
+      <a class="active" href="#"><svg><use href="icons.svg#i-setup"/></svg><span class="label">Setup</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="profile-row"><div class="avatar">MK</div><div class="profile-text"><div class="profile-name">Marcus Kim</div><div class="profile-role">Merchant Admin</div></div></div>
+    </div>
+  </aside>
+  <div class="content">
+    <div class="topbar">
+      <button class="icon-btn"><svg><use href="icons.svg#i-menu"/></svg></button>
+      <div class="crumbs"><span class="cur">Setup</span></div>
+      <div class="topbar-spacer"></div>
+      <button class="icon-btn"><svg><use href="icons.svg#i-bell"/></svg></button>
+      <div class="topbar-divider"></div>
+      <div class="topbar-profile"><div class="avatar">MK</div><svg><use href="icons.svg#i-chevron-down"/></svg></div>
+    </div>
+    <main class="main">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Administration</p>
+          <h1 class="page-title">Setup</h1>
+          <p class="page-sub">One-time configuration for this deployment</p>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <span class="active">Integrations</span>
+        <span>Users &amp; roles</span>
+        <span>Deployment</span>
+      </div>
+
+      <div class="card section">
+        <div class="section-head"><div class="section-icon"><svg><use href="icons.svg#i-lock"/></svg></div><h2>Model provider</h2></div>
+        <p class="desc">Credentials stay encrypted on this machine and are never shown again after saving.</p>
+        <div class="row"><label>Provider</label><select><option>OpenAI-compatible</option></select></div>
+        <div class="row"><label>Base URL</label><input value="https://api.openai.com/v1"></div>
+        <div class="row"><label>API key</label><input value="sk-••••••••••••7f2a" type="password"></div>
+        <div class="row-actions">
+          <div class="status"><span class="dot"></span>Last tested 2 minutes ago</div>
+          <button class="btn btn-ghost btn-sm">Test connection</button>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="section-head"><div class="section-icon"><svg><use href="icons.svg#i-db"/></svg></div><h2>Merchant database connector</h2></div>
+        <p class="desc">Read-only access to <span class="mono">dispute_case_view</span> only.</p>
+        <div class="row"><label>Host</label><input value="10.20.4.18:5432"></div>
+        <div class="row"><label>Database</label><input value="northwind_prod"></div>
+        <div class="row"><label>Username</label><input value="disputecopilot_ro"></div>
+        <div class="row"><label>Password</label><input value="••••••••••••" type="password"></div>
+        <div class="row-actions">
+          <div class="status pending"><span class="dot"></span>Not yet tested</div>
+          <button class="btn btn-ghost btn-sm">Test connection</button>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="section-head"><div class="section-icon"><svg><use href="icons.svg#i-clock"/></svg></div><h2>Merchant time zone</h2></div>
+        <p class="desc">Used to compute the calendar date for policy effective-date filtering.</p>
+        <div class="row"><label>Time zone</label><select><option>Asia/Kolkata (UTC+05:30)</option></select></div>
+      </div>
+
+      <button class="btn btn-primary">Save configuration</button>
+    </main>
+  </div>
+</div>
+</body>
+</html>
