@@ -59,7 +59,7 @@ export function PolicyLibrary() {
         <div>
           <p className="eyebrow">Library</p>
           <h1 className="page-title">Policy library</h1>
-          <p className="page-sub">Versioned documents used for effective-date grounded retrieval</p>
+          <p className="page-sub">Your return/refund policies — the AI cites these when making a recommendation</p>
         </div>
         <div className="head-actions">
           <input

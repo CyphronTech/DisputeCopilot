@@ -4,7 +4,7 @@ import { createCase, getCaseMetrics, getCases } from '../api/client'
 import { downloadCsv } from '../lib/csv'
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
-import { StateTag } from '../components/Tag'
+import { StateTag, recommendationLabel } from '../components/Tag'
 import type { CaseMetrics, CaseSummary } from '../api/types'
 
 const FILTERS = ['All states', 'Awaiting approval', 'Manual review', 'Exported'] as const
@@ -71,7 +71,7 @@ export function CaseList() {
         </div>
       </div>
       <p style={{ color: 'var(--text-3)', fontSize: 12.5, marginTop: -8, marginBottom: 16 }}>
-        "New investigation" queries your merchant database live via the connector, then an AI agent reviews the evidence and recommends CONTEST/ACCEPT, or routes to manual review below.
+        "New investigation" looks up the order in your store's records, then an AI reviews it and tells you whether to contest or accept the dispute — or flags it for you to decide.
       </p>
 
       {metrics && (
@@ -131,11 +131,11 @@ export function CaseList() {
                 <td className="rec-cell">
                   {c.recommendation ? (
                     <>
-                      <span className="rlabel">{c.recommendation}</span>
+                      <span className="rlabel">{recommendationLabel(c.recommendation)}</span>
                       <Confidence value={c.confidence ?? 0} />
                     </>
                   ) : (
-                    <span className="rlabel" style={{ color: 'var(--text-3)' }}>—</span>
+                    <span className="rlabel" style={{ color: 'var(--text-3)' }}>No recommendation yet</span>
                   )}
                 </td>
                 <td style={{ color: 'var(--text-2)', fontSize: 12.5, maxWidth: 360, whiteSpace: 'normal' }}>

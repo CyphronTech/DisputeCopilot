@@ -229,8 +229,8 @@ export function Setup() {
               <h2>Merchant database connector</h2>
             </div>
             <p className="desc">
-              Connect your store's database directly. Nothing here executes model-authored SQL —
-              the agent only ever reads the tables/columns you approve below.
+              Connect your store's database directly. The AI can only ever read the tables/columns
+              you approve below — nothing else, and it can never write or change anything.
               {!dbConfigured && ' Leave this unset to keep using the built-in demo data.'}
             </p>
             <div className="row">

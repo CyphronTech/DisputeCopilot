@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { getCase, resolveManually } from '../api/client'
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
-import { StateTag, Tag } from '../components/Tag'
+import { StateTag, Tag, recommendationLabel } from '../components/Tag'
 import type { CaseDetail } from '../api/types'
 
 export function CaseWorkspace() {
@@ -105,9 +105,9 @@ export function CaseWorkspace() {
             <div className="rec-top">
               <span className="rec-label">Recommendation</span>
               {detail.recommendation ? (
-                <Tag tone={detail.recommendation === 'MANUAL_REVIEW_REQUIRED' ? 'warn' : 'accent'}>{detail.recommendation}</Tag>
+                <Tag tone={detail.recommendation === 'MANUAL_REVIEW_REQUIRED' ? 'warn' : 'accent'}>{recommendationLabel(detail.recommendation)}</Tag>
               ) : (
-                <Tag tone="neutral">PENDING</Tag>
+                <Tag tone="neutral">Not ready yet</Tag>
               )}
             </div>
             {detail.confidence != null && (
@@ -128,7 +128,7 @@ export function CaseWorkspace() {
             <div className="card" style={{ marginTop: 12 }}>
               <h2 style={{ marginTop: 0 }}>Resolve manually</h2>
               <p style={{ color: 'var(--text-3)', fontSize: 12.5, marginTop: 4 }}>
-                The agent could not reach a confident recommendation. Review the evidence above and decide yourself.
+                The AI couldn't reach a confident decision on this one. Review the evidence above and decide yourself.
               </p>
               <textarea
                 placeholder="Note (optional) — why you're making this call"

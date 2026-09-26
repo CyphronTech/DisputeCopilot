@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { approveReport, getDraftReport, requestReportChanges } from '../api/client'
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
+import { recommendationLabel } from '../components/Tag'
 import type { DraftReport as DraftReportData } from '../api/types'
 
 export function DraftReport() {
@@ -61,7 +62,7 @@ export function DraftReport() {
           <div className="card">
             <div className="meta-row">
               <span className="k">Recommendation</span>
-              <span className="v">{report.recommendation}</span>
+              <span className="v">{recommendationLabel(report.recommendation)}</span>
             </div>
             <div className="meta-row">
               <span className="k">Confidence</span>

@@ -28,7 +28,7 @@ export function AuditLog() {
         <div>
           <p className="eyebrow">Compliance</p>
           <h1 className="page-title">Audit log</h1>
-          <p className="page-sub">Append-only record of security and business events</p>
+          <p className="page-sub">A permanent record of who did what and when</p>
         </div>
         <div className="head-actions">
           <button

@@ -71,25 +71,24 @@ public class ReportService {
         .map(i -> new EvidenceIndexEntry(i.getTitle() + ": " + i.getDescription(), i.getSourceRef()))
         .toList();
     String caseSummary = entity.getSummary() != null ? entity.getSummary()
-        : "Order " + entity.getOrderId() + " for " + entity.getCustomerName()
-        + ". Recommendation: " + (entity.getRecommendation() == null ? "pending" : entity.getRecommendation())
-        + (entity.getCaveat() == null ? "" : " (" + entity.getCaveat() + ")");
+        : "No plain-English summary was generated for this older case. Order " + entity.getOrderId() + " for " + entity.getCustomerName() + "."
+        + (entity.getCaveat() == null ? "" : " " + entity.getCaveat());
     String model = modelConfigs.findById(Boolean.TRUE).map(c -> c.getProvider() + "/" + c.getModel()).orElse("not configured");
     boolean approved = entity.getState() == CaseState.APPROVED || entity.getState() == CaseState.EXPORTED;
 
     List<CaseCitationEntity> caseCitations = citations.findByCaseId(entity.getId());
     String policyCitationsSummary = caseCitations.isEmpty()
-        ? "No policy excerpt was found relevant to this case's evidence — recommendation is evidence-completeness only, not policy-grounded."
+        ? "No matching policy was found for this case — the recommendation is based on your records alone, not a specific policy rule."
         : caseCitations.stream()
             .map(c -> c.getTitle() + " v" + c.getVersion() + ": \"" + c.getQuote() + "\"")
             .reduce((a, b) -> a + "\n" + b).orElse("");
-    String policyVersion = caseCitations.isEmpty() ? "N/A — no policy excerpt matched" : caseCitations.get(0).getVersion();
+    String policyVersion = caseCitations.isEmpty() ? "No policy matched" : caseCitations.get(0).getVersion();
 
     String content = entity.getId() + "|" + entity.getRecommendation() + "|" + entity.getConfidence() + "|" + index;
     return new DraftReport(
         entity.getId().toString(), entity.getOrderId(), 1, approved, caseSummary, index,
         policyCitationsSummary,
-        "Evidence was read only from the merchant's allowlisted tables listed in architecture.md; policy retrieval is keyword-based, not semantic search, and no manual verification has occurred.",
+        "This was generated from your store's own records only; no one has manually double-checked it against the physical order yet.",
         entity.getRecommendation(), entity.getConfidence(), policyVersion, model, sha256(content));
   }
 

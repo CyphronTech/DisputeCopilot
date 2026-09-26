@@ -115,7 +115,14 @@ public class CaseIntakeService {
   private String describe(Map<String, Object> row) {
     return row.entrySet().stream()
         .filter(e -> !e.getKey().toLowerCase().contains("url"))
-        .map(e -> e.getKey() + "=" + e.getValue()).reduce((a, b) -> a + ", " + b).orElse("");
+        .map(e -> humanizeKey(e.getKey()) + ": " + e.getValue())
+        .reduce((a, b) -> a + " · " + b).orElse("");
+  }
+
+  /** "processor_ref" -> "Processor ref" — generic so it works for any merchant's own column names, not just the fixture schema. */
+  private String humanizeKey(String key) {
+    String spaced = key.replace('_', ' ');
+    return Character.toUpperCase(spaced.charAt(0)) + spaced.substring(1);
   }
 
   public CaseDetail get(String caseId) {
