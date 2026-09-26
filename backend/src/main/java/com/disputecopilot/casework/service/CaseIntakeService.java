@@ -71,25 +71,58 @@ public class CaseIntakeService {
   }
 
   private CaseDetail collectEvidence(CaseEntity caseEntity) {
+    boolean orderFound = false;
+    boolean refundIssued = false;
     for (String table : connector.approvedTables()) {
       List<Map<String, Object>> rows = connector.readApprovedTable(table, caseEntity.getOrderId());
       queryAudit.save(new ConnectorQueryAuditEntity(UUID.randomUUID(), caseEntity.getId(), table, rows.size(), Instant.now()));
       evidenceItems.save(toEvidenceItem(caseEntity.getId(), table, rows));
+      if (table.equals("orders") && !rows.isEmpty()) orderFound = true;
+      if (table.equals("refunds") && rows.stream().anyMatch(this::looksIssued)) refundIssued = true;
     }
     audit.record("Merchant DB evidence collected", connector.approvedTables().size() + " tables queried", caseEntity.getOrderId(), "System", true, "db", "accent");
     List<EvidenceItemEntity> evidence = evidenceItems.findByCaseId(caseEntity.getId());
+
+    if (!orderFound) {
+      // Nothing to reason about — asking the model to guess about an order it has no data for is exactly how hallucination happens.
+      caseEntity.applyReview(null, null, "No order matching '" + caseEntity.getOrderId() + "' was found in your store.",
+          "We couldn't find an order matching '" + caseEntity.getOrderId() + "' in your store — check the order ID and try again.",
+          CaseState.MANUAL_REVIEW_REQUIRED);
+      audit.record("Order not found", "no orders record for " + caseEntity.getOrderId(), caseEntity.getOrderId(), "System", true, "alert", "warn");
+      cases.save(caseEntity);
+      return toDetail(caseEntity, evidence);
+    }
+
     try {
       EvidenceReviewAgent.Review review = reviewAgent.review(caseEntity.getOrderId(), evidence);
-      CaseState nextState = review.recommendation().equals("MANUAL_REVIEW_REQUIRED")
+      String recommendation = review.recommendation();
+      double confidence = review.confidence();
+      String caveat = review.caveat();
+
+      // Deterministic safety net: our own prompt ties ACCEPT to "a refund was already issued" and
+      // CONTEST to "no refund was issued" — if the model's answer contradicts what the connector
+      // actually read, trust the data over the model and force a human to look, rather than act on
+      // a recommendation that's inconsistent with the merchant's own records.
+      if (recommendation.equals("CONTEST") && refundIssued) {
+        caveat = "Flagged for you: the AI recommended contesting, but your records show a refund was already issued for this order.";
+        recommendation = "MANUAL_REVIEW_REQUIRED";
+        confidence = 0.0;
+      } else if (recommendation.equals("ACCEPT") && !refundIssued) {
+        caveat = "Flagged for you: the AI recommended accepting, but there's no refund on record for this order yet.";
+        recommendation = "MANUAL_REVIEW_REQUIRED";
+        confidence = 0.0;
+      }
+
+      CaseState nextState = recommendation.equals("MANUAL_REVIEW_REQUIRED")
           ? CaseState.MANUAL_REVIEW_REQUIRED : CaseState.AWAITING_HUMAN_APPROVAL;
-      caseEntity.applyReview(review.recommendation(), review.confidence(), review.caveat(), review.summary(), nextState);
+      caseEntity.applyReview(recommendation, confidence, caveat, review.summary(), nextState);
       for (EvidenceReviewAgent.Citation citation : review.citations()) {
         citations.save(new CaseCitationEntity(UUID.randomUUID(), caseEntity.getId(), UUID.fromString(citation.documentId()), citation.title(), citation.version(), citation.quote()));
       }
       if (nextState == CaseState.MANUAL_REVIEW_REQUIRED) {
-        audit.record("Routed to manual review", review.caveat() == null ? "agent could not reach a confident recommendation" : review.caveat(), caseEntity.getOrderId(), "System", true, "alert", "warn");
+        audit.record("Routed to manual review", caveat == null ? "agent could not reach a confident recommendation" : caveat, caseEntity.getOrderId(), "System", true, "alert", "warn");
       } else {
-        audit.record("Agent recommendation ready", review.recommendation() + " · confidence " + review.confidence(), caseEntity.getOrderId(), "System", true, "check", "success");
+        audit.record("Agent recommendation ready", recommendation + " · confidence " + confidence, caseEntity.getOrderId(), "System", true, "check", "success");
       }
     } catch (Exception e) {
       caseEntity.applyReview(null, null, "AI review unavailable: " + e.getMessage(), null, CaseState.MANUAL_REVIEW_REQUIRED);
@@ -97,6 +130,15 @@ public class CaseIntakeService {
     }
     cases.save(caseEntity);
     return toDetail(caseEntity, evidence);
+  }
+
+  // ponytail: only recognizes a literal "status" column valued "issued" (case-insensitive) —
+  // true for the fixture demo and the Shopify connector (which synthesizes that field), but a
+  // merchant's own arbitrary DB schema may use a different column/value and this silently
+  // won't catch anything for them. Degrades to "guard doesn't fire", not a false positive.
+  private boolean looksIssued(Map<String, Object> refundRow) {
+    Object status = refundRow.get("status");
+    return status != null && String.valueOf(status).trim().equalsIgnoreCase("issued");
   }
 
   private EvidenceItemEntity toEvidenceItem(UUID caseId, String table, List<Map<String, Object>> rows) {

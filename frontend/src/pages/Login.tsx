@@ -46,9 +46,8 @@ export function Login() {
         </div>
         <div className="field-row">
           <span style={{ color: 'var(--text-3)' }}>Session expires after 12h idle</span>
-          <a href="#forgot">Forgot?</a>
         </div>
-        {error && <div style={{ color: 'var(--danger, #d33)', fontSize: 13 }}>{error}</div>}
+        {error && <div style={{ color: 'var(--error)', fontSize: 13 }}>{error}</div>}
         <button className="btn btn-primary" type="submit">
           Sign in
         </button>

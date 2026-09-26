@@ -29,9 +29,8 @@ export function Layout() {
             <div className="brand-sub">Northwind Retail</div>
           </div>
         </div>
-        <div className="workspace-pick">
+        <div className="workspace-pick" style={{ cursor: 'default' }}>
           Production
-          <Icon name="chevron-down" />
         </div>
         <nav className="nav">
           {NAV.map((item) => (

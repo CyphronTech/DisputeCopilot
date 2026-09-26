@@ -17,6 +17,7 @@ export function CaseList() {
   const [metrics, setMetrics] = useState<CaseMetrics | null>(null)
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All states')
   const [creating, setCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     getCases().then(setCases)
@@ -27,11 +28,12 @@ export function CaseList() {
     const orderId = window.prompt('Order ID (e.g. ORD-2026-1042). This queries the merchant database live and runs the AI agent — it can take a few seconds.')
     if (!orderId) return
     setCreating(true)
+    setError(null)
     try {
       const created = await createCase(orderId)
       navigate(`/cases/${created.caseId}`)
     } catch (e) {
-      window.alert(`Could not create case: ${e}`)
+      setError(`Could not create case: ${e}`)
     } finally {
       setCreating(false)
     }
@@ -73,6 +75,11 @@ export function CaseList() {
       <p style={{ color: 'var(--text-3)', fontSize: 12.5, marginTop: -8, marginBottom: 16 }}>
         "New investigation" looks up the order in your store's records, then an AI reviews it and tells you whether to contest or accept the dispute — or flags it for you to decide.
       </p>
+      {error && (
+        <div className="card" style={{ background: 'var(--error-dim)', color: 'var(--error)', marginBottom: 16, fontSize: 12.5 }}>
+          {error}
+        </div>
+      )}
 
       {metrics && (
         <div className="metric-strip">

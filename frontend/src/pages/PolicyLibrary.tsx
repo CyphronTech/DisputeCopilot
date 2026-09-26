@@ -26,6 +26,7 @@ export function PolicyLibrary() {
   const [selected, setSelected] = useState<PolicyDocument | null>(null)
   const [filter, setFilter] = useState<(typeof TYPE_FILTERS)[number]>(TYPE_FILTERS[0])
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const visible = policies.filter((doc) => filter === 'All types' || categoryOf(doc.title) === filter)
 
@@ -43,11 +44,12 @@ export function PolicyLibrary() {
   async function handleUpload(file: File | undefined) {
     if (!file) return
     setUploading(true)
+    setUploadError(null)
     try {
       await uploadPolicy(file)
       await refresh()
     } catch (e) {
-      window.alert(`Could not upload policy: ${e}`)
+      setUploadError(`Could not upload policy: ${e}`)
     } finally {
       setUploading(false)
     }
@@ -75,6 +77,12 @@ export function PolicyLibrary() {
           </button>
         </div>
       </div>
+
+      {uploadError && (
+        <div className="card" style={{ background: 'var(--error-dim)', color: 'var(--error)', marginBottom: 16, fontSize: 12.5 }}>
+          {uploadError}
+        </div>
+      )}
 
       <div className="filters">
         {TYPE_FILTERS.map((f) => (

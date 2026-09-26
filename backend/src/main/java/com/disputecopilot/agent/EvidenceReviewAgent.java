@@ -93,8 +93,8 @@ public class EvidenceReviewAgent {
     String cleaned = raw.strip().replaceAll("^```json|^```|```$", "").strip();
     try {
       JsonNode node = json.readTree(cleaned);
-      String recommendation = node.path("recommendation").asText();
-      double confidence = node.path("confidence").asDouble();
+      String recommendation = node.path("recommendation").asText().trim().toUpperCase(java.util.Locale.ROOT);
+      double confidence = Math.clamp(node.path("confidence").asDouble(0.0), 0.0, 1.0);
       String caveat = node.hasNonNull("caveat") ? node.path("caveat").asText() : null;
       String summary = node.hasNonNull("summary") ? node.path("summary").asText() : null;
       if (!recommendation.equals("CONTEST") && !recommendation.equals("ACCEPT") && !recommendation.equals("MANUAL_REVIEW_REQUIRED")) {

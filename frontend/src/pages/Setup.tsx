@@ -405,6 +405,25 @@ export function Setup() {
           </div>
         </>
       )}
+
+      {tab === 'Users & roles' && (
+        <div className="card section">
+          <p className="desc" style={{ marginTop: 0 }}>
+            Not built yet — there's currently one shared admin account (set via the
+            <span className="mono"> ADMIN_EMAIL</span>/<span className="mono">ADMIN_PASSWORD</span> environment
+            variables). Per-person logins and permission levels aren't implemented.
+          </p>
+        </div>
+      )}
+
+      {tab === 'Deployment' && (
+        <div className="card section">
+          <p className="desc" style={{ marginTop: 0 }}>
+            Not built yet — this instance runs from source (Docker + Java + Node) on whatever
+            machine you start it on. There's no packaged installer or hosted option yet.
+          </p>
+        </div>
+      )}
     </>
   )
 }

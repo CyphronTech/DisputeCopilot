@@ -48,7 +48,7 @@ export function CaseWorkspace() {
         </Link>
       </div>
 
-      <div className="card" style={{ marginBottom: 16, background: 'var(--accent-dim, #eef4fc)' }}>
+      <div className="card" style={{ marginBottom: 16, background: 'var(--accent-dim)' }}>
         <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--text-3)', marginBottom: 6 }}>In plain English</div>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>
           {detail.summary ?? 'No summary available yet — the AI review either hasn’t run or didn’t produce one for this case.'}
