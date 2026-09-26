@@ -8,9 +8,11 @@ context.
 
 ## Status
 
-Design and implementation planning complete; application code has not started.
-The next step is Plan 1 (case intake vertical slice) — see
-[docs/superpowers/plans/2026-08-11-case-intake-vertical-slice.md](docs/superpowers/plans/2026-08-11-case-intake-vertical-slice.md).
+Built and running locally (Spring Boot backend + React frontend, Postgres via
+Docker Compose). The docs below and in `docs/superpowers/` are the original
+pre-implementation plan and specs — useful for context on intent, but several
+details (stack, retrieval approach) changed during implementation; see the
+"Stack" section below for what's actually there.
 
 ## Documents
 
@@ -28,8 +30,10 @@ An interactive UI mockup is referenced in the design docs
 (`mockups/disputecopilot-prototype.html`) but was not part of the archive this
 repository was built from, so it is not present here yet.
 
-## Stack (planned)
+## Stack (actual)
 
-Java 21, Spring Boot, Spring Security, Spring AI, PostgreSQL + pgvector,
-Flyway, React + TypeScript + Vite, Docker Compose. Version pins need
-revalidation before implementation (see the handoff doc, §11 and §25).
+Java 21, Spring Boot, Spring Security, PostgreSQL, Flyway, React + TypeScript
++ Vite, Docker Compose. Policy retrieval is plain keyword-overlap scoring, not
+embeddings — no vector extension is installed or needed. LLM calls go
+directly over HTTP to Anthropic/OpenAI-compatible endpoints (including local
+Ollama), no Spring AI dependency.

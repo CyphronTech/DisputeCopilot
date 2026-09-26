@@ -10,6 +10,7 @@ export function DraftReport() {
   const { caseId = '' } = useParams()
   const navigate = useNavigate()
   const [report, setReport] = useState<DraftReportData | null>(null)
+  const [changesNote, setChangesNote] = useState<string | null>(null)
 
   useEffect(() => {
     getDraftReport(caseId).then(setReport)
@@ -17,10 +18,8 @@ export function DraftReport() {
 
   if (!report) return null
 
-  async function handleRequestChanges() {
-    const note = window.prompt('What needs to change? This sends the case back to manual review.')
-    if (note === null) return
-    await requestReportChanges(caseId, note)
+  async function handleSubmitChanges() {
+    await requestReportChanges(caseId, changesNote ?? '')
     navigate(`/cases/${caseId}`)
   }
 
@@ -86,7 +85,23 @@ export function DraftReport() {
               <Icon name="check" />
               Approve this revision
             </button>
-            <button className="btn btn-outline" onClick={handleRequestChanges}>Request changes</button>
+            {changesNote === null ? (
+              <button className="btn btn-outline" onClick={() => setChangesNote('')}>Request changes</button>
+            ) : (
+              <>
+                <textarea
+                  autoFocus
+                  placeholder="What needs to change? This sends the case back to manual review."
+                  value={changesNote}
+                  onChange={(e) => setChangesNote(e.target.value)}
+                  style={{ width: '100%', minHeight: 60 }}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-outline" style={{ flex: 1, width: 'auto' }} onClick={handleSubmitChanges} disabled={!changesNote.trim()}>Send back</button>
+                  <button className="btn btn-ghost" style={{ flex: 1, width: 'auto' }} onClick={() => setChangesNote(null)}>Cancel</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

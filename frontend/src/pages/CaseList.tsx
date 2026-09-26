@@ -18,6 +18,7 @@ export function CaseList() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All states')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [newOrderId, setNewOrderId] = useState<string | null>(null)
 
   useEffect(() => {
     getCases().then(setCases)
@@ -25,13 +26,13 @@ export function CaseList() {
   }, [])
 
   async function handleNewInvestigation() {
-    const orderId = window.prompt('Order ID (e.g. ORD-2026-1042). This queries the merchant database live and runs the AI agent — it can take a few seconds.')
-    if (!orderId) return
+    if (!newOrderId?.trim()) return
     setCreating(true)
     setError(null)
     try {
-      const created = await createCase(orderId)
+      const created = await createCase(newOrderId.trim())
       navigate(`/cases/${created.caseId}`)
+      setNewOrderId(null)
     } catch (e) {
       setError(`Could not create case: ${e}`)
     } finally {
@@ -66,10 +67,27 @@ export function CaseList() {
         </div>
         <div className="head-actions">
           <a className="text-link" href="#export" onClick={(e) => { e.preventDefault(); handleExport() }}>Export list</a>
-          <button className="btn btn-primary" onClick={handleNewInvestigation} disabled={creating}>
-            <Icon name="plus" />
-            {creating ? 'Running…' : 'New investigation'}
-          </button>
+          {newOrderId === null ? (
+            <button className="btn btn-primary" onClick={() => setNewOrderId('')}>
+              <Icon name="plus" />
+              New investigation
+            </button>
+          ) : (
+            <>
+              <input
+                autoFocus
+                placeholder="Order ID (e.g. ORD-2026-1042)"
+                value={newOrderId}
+                onChange={(e) => setNewOrderId(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleNewInvestigation()}
+                style={{ width: 220 }}
+              />
+              <button className="btn btn-primary" onClick={handleNewInvestigation} disabled={creating || !newOrderId.trim()}>
+                {creating ? 'Running…' : 'Start'}
+              </button>
+              <button className="btn btn-ghost" onClick={() => setNewOrderId(null)} disabled={creating}>Cancel</button>
+            </>
+          )}
         </div>
       </div>
       <p style={{ color: 'var(--text-3)', fontSize: 12.5, marginTop: -8, marginBottom: 16 }}>

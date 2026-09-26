@@ -1,5 +1,11 @@
 # Architecture and detailed design
 
+> **Note:** this is the pre-implementation design doc. One thing changed during
+> build: policy retrieval uses plain keyword-overlap scoring, not pgvector/
+> embeddings — no vector extension is installed. Every "pgvector"/"semantic
+> retrieval"/"embedding" reference below describes the original plan, not
+> what's running. See the README's "Stack (actual)" section.
+
 ## High-level design
 
 ```mermaid
