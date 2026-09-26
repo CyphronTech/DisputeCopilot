@@ -81,6 +81,14 @@ export async function getPolicies(): Promise<PolicyDocument[]> {
   return fetch('/api/v1/policies').then((r) => r.json())
 }
 
+export async function uploadPolicy(file: File): Promise<PolicyDocument> {
+  const form = new FormData()
+  form.append('file', file)
+  const r = await fetch('/api/v1/policies', { method: 'POST', body: form })
+  if (!r.ok) throw new Error(await r.text())
+  return r.json()
+}
+
 export async function getAuditEvents(): Promise<AuditEvent[]> {
   const r = await fetch('/api/v1/audit')
   const events = await r.json()

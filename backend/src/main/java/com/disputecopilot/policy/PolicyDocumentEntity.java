@@ -22,6 +22,17 @@ public class PolicyDocumentEntity {
 
   protected PolicyDocumentEntity() {}
 
+  public PolicyDocumentEntity(UUID id, String title, String filename, String version, String status, LocalDate effectiveFrom, LocalDate effectiveTo, String content) {
+    this.id = id;
+    this.title = title;
+    this.filename = filename;
+    this.version = version;
+    this.status = status;
+    this.effectiveFrom = effectiveFrom;
+    this.effectiveTo = effectiveTo;
+    this.content = content;
+  }
+
   public UUID getId() { return id; }
   public String getTitle() { return title; }
   public String getFilename() { return filename; }

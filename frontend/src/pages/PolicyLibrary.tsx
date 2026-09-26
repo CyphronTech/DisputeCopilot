@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { getPolicies } from '../api/client'
+import { useEffect, useRef, useState } from 'react'
+import { getPolicies, uploadPolicy } from '../api/client'
 import { Icon } from '../components/Icon'
 import { Tag } from '../components/Tag'
 import type { PolicyDocument, PolicyStatus } from '../api/types'
@@ -25,14 +25,33 @@ export function PolicyLibrary() {
   const [policies, setPolicies] = useState<PolicyDocument[]>([])
   const [selected, setSelected] = useState<PolicyDocument | null>(null)
   const [filter, setFilter] = useState<(typeof TYPE_FILTERS)[number]>(TYPE_FILTERS[0])
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const visible = policies.filter((doc) => filter === 'All types' || categoryOf(doc.title) === filter)
 
-  useEffect(() => {
-    getPolicies().then((docs) => {
+  function refresh() {
+    return getPolicies().then((docs) => {
       setPolicies(docs)
-      setSelected(docs[0] ?? null)
+      setSelected((current) => docs.find((d) => d.documentId === current?.documentId) ?? docs[0] ?? null)
     })
+  }
+
+  useEffect(() => {
+    refresh()
   }, [])
+
+  async function handleUpload(file: File | undefined) {
+    if (!file) return
+    setUploading(true)
+    try {
+      await uploadPolicy(file)
+      await refresh()
+    } catch (e) {
+      window.alert(`Could not upload policy: ${e}`)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <>
@@ -43,9 +62,16 @@ export function PolicyLibrary() {
           <p className="page-sub">Versioned documents used for effective-date grounded retrieval</p>
         </div>
         <div className="head-actions">
-          <button className="btn btn-primary" disabled title="Uploading new policy documents isn't implemented yet — these are seeded directly in the database">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.txt"
+            style={{ display: 'none' }}
+            onChange={(e) => handleUpload(e.target.files?.[0])}
+          />
+          <button className="btn btn-primary" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
             <Icon name="upload" />
-            Upload policy
+            {uploading ? 'Uploading…' : 'Upload policy'}
           </button>
         </div>
       </div>
@@ -112,9 +138,16 @@ export function PolicyLibrary() {
               ))}
             </div>
           )}
-          <div className="drop" style={{ opacity: 0.5 }} title="Not implemented yet">
+          <div
+            className="drop"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault()
+              handleUpload(e.dataTransfer.files?.[0])
+            }}
+          >
             <Icon name="upload" />
-            <div>Upload isn't wired up yet — policies are seeded directly for now</div>
+            <div>{uploading ? 'Uploading…' : 'Drop a PDF or TXT file, or browse'}</div>
           </div>
         </div>
       </div>
