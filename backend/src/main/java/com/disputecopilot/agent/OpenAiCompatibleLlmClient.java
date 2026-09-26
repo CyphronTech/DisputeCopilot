@@ -37,7 +37,7 @@ class OpenAiCompatibleLlmClient implements LlmClient {
           }));
       Builder builder = HttpRequest.newBuilder(URI.create(baseUrl + "/chat/completions"))
           .header("content-type", "application/json")
-          .timeout(Duration.ofSeconds(60))
+          .timeout(Duration.ofSeconds(120))
           .POST(HttpRequest.BodyPublishers.ofString(body));
       if (apiKey != null && !apiKey.isBlank()) {
         builder.header("authorization", "Bearer " + apiKey);

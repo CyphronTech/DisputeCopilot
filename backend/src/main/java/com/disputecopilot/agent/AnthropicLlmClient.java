@@ -36,7 +36,7 @@ class AnthropicLlmClient implements LlmClient {
           .header("content-type", "application/json")
           .header("x-api-key", apiKey)
           .header("anthropic-version", "2023-06-01")
-          .timeout(Duration.ofSeconds(60))
+          .timeout(Duration.ofSeconds(120))
           .POST(HttpRequest.BodyPublishers.ofString(body))
           .build();
       HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
