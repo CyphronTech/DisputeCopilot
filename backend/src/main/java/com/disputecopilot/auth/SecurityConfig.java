@@ -49,7 +49,13 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers(HttpMethod.POST, "/api/v1/session").permitAll()
             .requestMatchers("/actuator/**").permitAll()
-            .anyRequest().authenticated())
+            .requestMatchers("/api/**").authenticated()
+            // Everything else is the SPA shell (index.html, JS/CSS, and every client-side
+            // route it forwards to) — only meaningful once the frontend is bundled into the
+            // jar (see SpaFallbackController); in dev, Vite serves these directly and Spring
+            // never sees these requests. The shell itself has no data; it's the /api/**
+            // calls above that stay behind auth.
+            .anyRequest().permitAll())
         .httpBasic(basic -> basic.disable())
         .formLogin(form -> form.disable())
         .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
