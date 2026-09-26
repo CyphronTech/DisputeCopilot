@@ -82,7 +82,7 @@ public class CaseIntakeService {
       EvidenceReviewAgent.Review review = reviewAgent.review(caseEntity.getOrderId(), evidence);
       CaseState nextState = review.recommendation().equals("MANUAL_REVIEW_REQUIRED")
           ? CaseState.MANUAL_REVIEW_REQUIRED : CaseState.AWAITING_HUMAN_APPROVAL;
-      caseEntity.applyReview(review.recommendation(), review.confidence(), review.caveat(), nextState);
+      caseEntity.applyReview(review.recommendation(), review.confidence(), review.caveat(), review.summary(), nextState);
       for (EvidenceReviewAgent.Citation citation : review.citations()) {
         citations.save(new CaseCitationEntity(UUID.randomUUID(), caseEntity.getId(), UUID.fromString(citation.documentId()), citation.title(), citation.version(), citation.quote()));
       }
@@ -92,7 +92,7 @@ public class CaseIntakeService {
         audit.record("Agent recommendation ready", review.recommendation() + " · confidence " + review.confidence(), caseEntity.getOrderId(), "System", true, "check", "success");
       }
     } catch (Exception e) {
-      caseEntity.applyReview(null, null, "AI review unavailable: " + e.getMessage(), CaseState.MANUAL_REVIEW_REQUIRED);
+      caseEntity.applyReview(null, null, "AI review unavailable: " + e.getMessage(), null, CaseState.MANUAL_REVIEW_REQUIRED);
       audit.record("AI review failed", e.getMessage(), caseEntity.getOrderId(), "System", true, "alert", "warn");
     }
     cases.save(caseEntity);
@@ -123,7 +123,10 @@ public class CaseIntakeService {
       throw new IllegalArgumentException("recommendation must be CONTEST or ACCEPT");
     }
     CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(NoSuchElementException::new);
-    entity.applyReview(recommendation, 1.0, note, CaseState.AWAITING_HUMAN_APPROVAL);
+    String summary = "An analyst reviewed order " + entity.getOrderId() + " by hand and decided to "
+        + (recommendation.equals("CONTEST") ? "contest" : "accept") + " the dispute"
+        + (note == null || note.isBlank() ? "." : ", noting: " + note);
+    entity.applyReview(recommendation, 1.0, note, summary, CaseState.AWAITING_HUMAN_APPROVAL);
     cases.save(entity);
     audit.record("Case resolved manually", recommendation + (note == null || note.isBlank() ? "" : " — " + note), entity.getOrderId(), "Admin", false, "user", "neutral");
     return toDetail(entity, evidenceItems.findByCaseId(entity.getId()));
@@ -140,13 +143,13 @@ public class CaseIntakeService {
   }
 
   private CaseSummary toSummary(CaseEntity e) {
-    return new CaseSummary(e.getId().toString(), e.getOrderId(), e.getCustomerName(), e.getCustomerEmail(), e.getState().name(), e.getRecommendation(), e.getConfidence(), e.getCreatedAt());
+    return new CaseSummary(e.getId().toString(), e.getOrderId(), e.getCustomerName(), e.getCustomerEmail(), e.getState().name(), e.getRecommendation(), e.getConfidence(), e.getSummary(), e.getCreatedAt());
   }
 
   private CaseDetail toDetail(CaseEntity e, List<EvidenceItemEntity> items) {
     List<EvidenceItem> evidence = items.stream()
         .map(i -> new EvidenceItem(i.getObservedAt(), i.getTitle(), i.getDescription(), i.getSourceRef(), i.getKind()))
         .toList();
-    return new CaseDetail(e.getId().toString(), e.getOrderId(), e.getCustomerName(), e.getState().name(), evidence, toCitations(e.getId()), e.getRecommendation(), e.getConfidence(), e.getCaveat());
+    return new CaseDetail(e.getId().toString(), e.getOrderId(), e.getCustomerName(), e.getState().name(), evidence, toCitations(e.getId()), e.getRecommendation(), e.getConfidence(), e.getCaveat(), e.getSummary());
   }
 }

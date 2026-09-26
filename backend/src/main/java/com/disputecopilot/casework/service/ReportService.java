@@ -60,7 +60,7 @@ public class ReportService {
   @Transactional
   public DraftReport requestChanges(String caseId, String note) {
     CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(NoSuchElementException::new);
-    entity.applyReview(entity.getRecommendation(), entity.getConfidence(), note, CaseState.MANUAL_REVIEW_REQUIRED);
+    entity.applyReview(entity.getRecommendation(), entity.getConfidence(), note, entity.getSummary(), CaseState.MANUAL_REVIEW_REQUIRED);
     cases.save(entity);
     audit.record("Report sent back for changes", note == null || note.isBlank() ? "no note provided" : note, entity.getOrderId(), "Admin", false, "alert", "warn");
     return build(entity, evidenceItems.findByCaseId(entity.getId()));
@@ -70,7 +70,8 @@ public class ReportService {
     List<EvidenceIndexEntry> index = items.stream()
         .map(i -> new EvidenceIndexEntry(i.getTitle() + ": " + i.getDescription(), i.getSourceRef()))
         .toList();
-    String caseSummary = "Order " + entity.getOrderId() + " for " + entity.getCustomerName()
+    String caseSummary = entity.getSummary() != null ? entity.getSummary()
+        : "Order " + entity.getOrderId() + " for " + entity.getCustomerName()
         + ". Recommendation: " + (entity.getRecommendation() == null ? "pending" : entity.getRecommendation())
         + (entity.getCaveat() == null ? "" : " (" + entity.getCaveat() + ")");
     String model = modelConfigs.findById(Boolean.TRUE).map(c -> c.getProvider() + "/" + c.getModel()).orElse("not configured");

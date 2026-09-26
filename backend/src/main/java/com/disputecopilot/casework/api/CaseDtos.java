@@ -13,7 +13,7 @@ public final class CaseDtos {
 
   public record CaseSummary(
       String caseId, String orderId, String customerName, String customerEmail,
-      String state, String recommendation, Double confidence, Instant createdAt) {}
+      String state, String recommendation, Double confidence, String summary, Instant createdAt) {}
 
   public record EvidenceItem(String observedAt, String title, String description, String sourceRef, String kind) {}
 
@@ -22,7 +22,7 @@ public final class CaseDtos {
   public record CaseDetail(
       String caseId, String orderId, String customerName, String state,
       List<EvidenceItem> evidence, List<PolicyCitation> citations,
-      String recommendation, Double confidence, String caveat) {}
+      String recommendation, Double confidence, String caveat, String summary) {}
 
   public record CaseMetrics(long openCases, long awaitingApproval, long manualReview, double exportedWithoutEditsPct) {}
 }

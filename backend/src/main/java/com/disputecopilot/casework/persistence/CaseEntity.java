@@ -27,6 +27,7 @@ public class CaseEntity {
   private String recommendation;
   private Double confidence;
   private String caveat;
+  private String summary;
 
   protected CaseEntity() {}
 
@@ -49,11 +50,13 @@ public class CaseEntity {
   public String getRecommendation() { return recommendation; }
   public Double getConfidence() { return confidence; }
   public String getCaveat() { return caveat; }
+  public String getSummary() { return summary; }
 
-  public void applyReview(String recommendation, Double confidence, String caveat, CaseState state) {
+  public void applyReview(String recommendation, Double confidence, String caveat, String summary, CaseState state) {
     this.recommendation = recommendation;
     this.confidence = confidence;
     this.caveat = caveat;
+    this.summary = summary;
     this.state = state;
   }
 }

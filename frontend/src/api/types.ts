@@ -23,6 +23,7 @@ export interface CaseSummary {
   state: CaseState
   recommendation?: Recommendation
   confidence?: number // 0..1
+  summary?: string
   createdAt: string // ISO
 }
 
@@ -59,6 +60,7 @@ export interface CaseDetail {
   recommendation?: Recommendation
   confidence?: number
   caveat?: string
+  summary?: string
 }
 
 export interface DraftReport {

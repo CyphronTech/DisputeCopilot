@@ -33,9 +33,15 @@ public class EvidenceReviewAgent {
       relevant to your recommendation, cite it by copying a short quote EXACTLY as written in \
       the excerpt (do not paraphrase) into the citations array, with the matching document title.
 
+      Also write a "summary": 2-3 plain-English sentences a non-technical shop owner could read \
+      and immediately understand, with no jargon (no "evidence rows", "gap", "citation", table \
+      names, or JSON-speak). State what the customer ordered, what the records show happened, \
+      and why you're making this recommendation.
+
       Respond with ONLY a JSON object, no markdown fences, no prose:
       {"recommendation": "CONTEST" | "ACCEPT" | "MANUAL_REVIEW_REQUIRED", "confidence": 0.0-1.0, \
-      "caveat": "short string or null", "citations": [{"documentTitle": "...", "quote": "exact substring from that document"}]}
+      "caveat": "short string or null", "summary": "2-3 plain-English sentences", \
+      "citations": [{"documentTitle": "...", "quote": "exact substring from that document"}]}
 
       Guidance: CONTEST when fulfillment evidence exists and no refund was issued. ACCEPT when \
       a refund was already issued. MANUAL_REVIEW_REQUIRED when evidence is missing, conflicting, \
@@ -55,7 +61,7 @@ public class EvidenceReviewAgent {
   }
 
   public record Citation(String documentId, String title, String version, String quote) {}
-  public record Review(String recommendation, double confidence, String caveat, List<Citation> citations) {}
+  public record Review(String recommendation, double confidence, String caveat, String summary, List<Citation> citations) {}
 
   public Review review(String orderId, List<EvidenceItemEntity> evidence) {
     ModelConfigEntity config = modelConfigs.findById(Boolean.TRUE)
@@ -90,11 +96,12 @@ public class EvidenceReviewAgent {
       String recommendation = node.path("recommendation").asText();
       double confidence = node.path("confidence").asDouble();
       String caveat = node.hasNonNull("caveat") ? node.path("caveat").asText() : null;
+      String summary = node.hasNonNull("summary") ? node.path("summary").asText() : null;
       if (!recommendation.equals("CONTEST") && !recommendation.equals("ACCEPT") && !recommendation.equals("MANUAL_REVIEW_REQUIRED")) {
         throw new IllegalArgumentException("Unexpected recommendation value: " + recommendation);
       }
       List<Citation> citations = verifiedCitations(node.path("citations"), matches);
-      return new Review(recommendation, confidence, caveat, citations);
+      return new Review(recommendation, confidence, caveat, summary, citations);
     } catch (Exception e) {
       throw new IllegalStateException("Could not parse model response as the expected JSON: " + raw, e);
     }

@@ -40,7 +40,7 @@ export function CaseList() {
   function handleExport() {
     downloadCsv('cases.csv', visible.map((c) => ({
       orderId: c.orderId, customer: c.customerName, email: c.customerEmail,
-      state: c.state, recommendation: c.recommendation ?? '', confidence: c.confidence ?? '', createdAt: c.createdAt,
+      state: c.state, recommendation: c.recommendation ?? '', confidence: c.confidence ?? '', summary: c.summary ?? '', createdAt: c.createdAt,
     })))
   }
 
@@ -111,6 +111,7 @@ export function CaseList() {
               <th>Customer</th>
               <th>State</th>
               <th>Recommendation</th>
+              <th style={{ minWidth: 280 }}>Summary (plain English)</th>
               <th>Created</th>
             </tr>
           </thead>
@@ -136,6 +137,9 @@ export function CaseList() {
                   ) : (
                     <span className="rlabel" style={{ color: 'var(--text-3)' }}>—</span>
                   )}
+                </td>
+                <td style={{ color: 'var(--text-2)', fontSize: 12.5, maxWidth: 360, whiteSpace: 'normal' }}>
+                  {c.summary ?? <span style={{ color: 'var(--text-3)' }}>Not available yet.</span>}
                 </td>
                 <td className="date">{formatDate(c.createdAt)}</td>
               </tr>
