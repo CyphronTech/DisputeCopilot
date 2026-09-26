@@ -1,8 +1,4 @@
-// Each function below is the one place to swap in a real fetch('/api/v1/...') call.
-// Cases now call the real backend. Everything else still resolves mock data until
-// its backend endpoint exists — swap the commented fetch() line in when it does.
-import type { AuditEvent, CaseDetail, CaseMetrics, CaseSummary, DraftReport, PolicyDocument, SaveModelConfigRequest, SetupConfig } from './types'
-import { mockSetup } from './mockData'
+import type { AuditEvent, CaseDetail, CaseMetrics, CaseSummary, DraftReport, PolicyDocument, SaveModelConfigRequest } from './types'
 
 export async function login(email: string, password: string): Promise<void> {
   const r = await fetch('/api/v1/session', {
@@ -223,6 +219,3 @@ export async function testShopifyConfig(): Promise<{ ok: boolean; message: strin
   return r.json()
 }
 
-export async function getSetupConfig(): Promise<SetupConfig> {
-  return mockSetup
-}

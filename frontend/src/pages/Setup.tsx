@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import {
-  discoverSchema, getAllowlist, getConnectorConfig, getModelConfig, getSetupConfig, getShopifyConfig, getTableRoleMapping,
+  discoverSchema, getAllowlist, getConnectorConfig, getModelConfig, getShopifyConfig, getTableRoleMapping,
   saveAllowlist, saveConnectorConfig, saveModelConfig, saveShopifyConfig, saveTableRoleMapping, suggestTableMapping,
   testConnectorConfig, testModelConfig, testShopifyConfig,
 } from '../api/client'
 import type { RoleMapping } from '../api/client'
 import { Icon } from '../components/Icon'
-import type { ModelProvider, SetupConfig } from '../api/types'
+import type { ModelProvider } from '../api/types'
 
 const TABS = ['Integrations', 'Users & roles', 'Deployment']
 
@@ -19,7 +19,6 @@ const PROVIDER_DEFAULTS: Record<ModelProvider, { label: string; baseUrl: string;
 }
 
 export function Setup() {
-  const [config, setConfig] = useState<SetupConfig | null>(null)
   const [tab, setTab] = useState(TABS[0])
 
   const [provider, setProvider] = useState<ModelProvider>('anthropic')
@@ -58,7 +57,6 @@ export function Setup() {
   const [shopifySaving, setShopifySaving] = useState(false)
 
   useEffect(() => {
-    getSetupConfig().then(setConfig)
     getModelConfig().then((m) => {
       if (m.provider) {
         setProvider(m.provider as ModelProvider)
@@ -243,8 +241,6 @@ export function Setup() {
     setTestStatus(result.ok ? 'Connected' : `Failed: ${result.message}`)
     if (result.ok) setLastTested(new Date().toISOString())
   }
-
-  if (!config) return null
 
   return (
     <>
@@ -538,13 +534,7 @@ export function Setup() {
               </div>
               <h2>Merchant time zone</h2>
             </div>
-            <p className="desc">Not editable here yet — used to compute the calendar date for policy effective-date filtering once that's wired up.</p>
-            <div className="row">
-              <label>Time zone</label>
-              <select defaultValue={config.timeZone} disabled>
-                <option>{config.timeZone}</option>
-              </select>
-            </div>
+            <p className="desc">Not built yet — will be used to compute the calendar date for policy effective-date filtering. Currently assumes IST for all merchants.</p>
           </div>
         </>
       )}

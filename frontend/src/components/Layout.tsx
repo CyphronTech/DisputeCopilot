@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { logout } from '../api/client'
+import { logout, whoami } from '../api/client'
 import { Icon } from './Icon'
 
 const CRUMBS: Record<string, string> = {
@@ -19,6 +19,14 @@ const NAV = [
 
 export function Layout() {
   const [collapsed, setCollapsed] = useState(false)
+  const [email, setEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    whoami().then((session) => setEmail(session?.email ?? null))
+  }, [])
+
+  const initials = email ? email.slice(0, 2).toUpperCase() : '—'
+
   return (
     <div className={`shell ${collapsed ? 'collapsed' : ''}`}>
       <aside className="sidebar">
@@ -42,16 +50,16 @@ export function Layout() {
         </nav>
         <div className="sidebar-footer">
           <div className="profile-row">
-            <div className="avatar">AR</div>
+            <div className="avatar">{initials}</div>
             <div className="profile-text">
-              <div className="profile-name">Aditi Rao</div>
-              <div className="profile-role">Dispute Analyst</div>
+              <div className="profile-name">{email ?? 'Not signed in'}</div>
+              <div className="profile-role">Admin</div>
             </div>
           </div>
         </div>
       </aside>
       <div className="content">
-        <Topbar onToggleSidebar={() => setCollapsed((c) => !c)} />
+        <Topbar onToggleSidebar={() => setCollapsed((c) => !c)} initials={initials} />
         <main className="main">
           <Outlet />
         </main>
@@ -60,7 +68,7 @@ export function Layout() {
   )
 }
 
-function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+function Topbar({ onToggleSidebar, initials }: { onToggleSidebar: () => void; initials: string }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -97,7 +105,7 @@ function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
       </div>
       <div className="topbar-divider" />
       <div className="topbar-profile" onClick={handleLogout} title="Sign out" style={{ cursor: 'pointer' }}>
-        <div className="avatar">AR</div>
+        <div className="avatar">{initials}</div>
         <Icon name="chevron-down" />
       </div>
     </div>

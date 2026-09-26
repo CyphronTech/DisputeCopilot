@@ -115,19 +115,6 @@ export interface AuditEvent {
 
 export type ModelProvider = 'anthropic' | 'openai' | 'local'
 
-export interface SetupConfig {
-  modelProvider: ModelProvider | ''
-  modelBaseUrl: string
-  modelKeyMasked: string | null
-  modelName: string
-  modelLastTested: string | null
-  dbHost: string
-  dbDatabase: string
-  dbUsername: string
-  dbLastTested: string | null
-  timeZone: string
-}
-
 export interface SaveModelConfigRequest {
   provider: ModelProvider
   baseUrl: string
