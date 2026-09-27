@@ -4,7 +4,7 @@ import { getCase, resolveManually } from '../api/client'
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
 import { StateTag, Tag, recommendationLabel } from '../components/Tag'
-import { ErrorBanner, messageOf } from '../components/ErrorBanner'
+import { ErrorBanner, Loading, messageOf } from '../components/ErrorBanner'
 import type { CaseDetail } from '../api/types'
 
 export function CaseWorkspace() {
@@ -38,7 +38,7 @@ export function CaseWorkspace() {
           Back to cases
         </Link>
         <ErrorBanner message={error} />
-        {!error && <div style={{ padding: 40, color: 'var(--text-3)', fontSize: 13 }}>Loading case…</div>}
+        {!error && <Loading what="Loading case…" />}
       </>
     )
   }

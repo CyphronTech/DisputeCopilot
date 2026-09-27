@@ -4,7 +4,7 @@ import { approveReport, getDraftReport, requestReportChanges } from '../api/clie
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
 import { recommendationLabel } from '../components/Tag'
-import { ErrorBanner, messageOf } from '../components/ErrorBanner'
+import { ErrorBanner, Loading, messageOf } from '../components/ErrorBanner'
 import type { DraftReport as DraftReportData } from '../api/types'
 
 export function DraftReport() {
@@ -45,7 +45,7 @@ export function DraftReport() {
           Back to case
         </Link>
         <ErrorBanner message={error} />
-        {!error && <div style={{ padding: 40, color: 'var(--text-3)', fontSize: 13 }}>Loading report…</div>}
+        {!error && <Loading what="Loading report…" />}
       </>
     )
   }

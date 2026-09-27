@@ -96,7 +96,6 @@ public class ConnectorSetupController {
   @PutMapping("/allowlist")
   public Map<String, List<String>> saveAllowlist(@RequestBody AllowlistRequest request) throws Exception {
     Map<String, List<String>> schema = schemaDiscovery.discover();
-    Map<String, List<String>> validated = new java.util.LinkedHashMap<>();
     for (var entry : request.allowlist().entrySet()) {
       List<String> realColumns = schema.get(entry.getKey());
       if (realColumns == null) {
@@ -107,10 +106,9 @@ public class ConnectorSetupController {
           throw new IllegalArgumentException("No such column in " + entry.getKey() + ": " + column);
         }
       }
-      validated.put(entry.getKey(), List.copyOf(entry.getValue()));
     }
-    allowlistStore.save(validated);
-    audit.record("Connector allowlist updated", validated.size() + " tables approved", null, "Admin", false, "setup", "neutral");
+    allowlistStore.save(request.allowlist());
+    audit.record("Connector allowlist updated", request.allowlist().size() + " tables approved", null, "Admin", false, "setup", "neutral");
     return allowlistStore.load();
   }
 

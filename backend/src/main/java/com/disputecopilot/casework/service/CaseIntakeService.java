@@ -189,11 +189,7 @@ public class CaseIntakeService {
    */
   private String observedAt(Map<String, Object> row) {
     return row.entrySet().stream()
-        .filter(e -> e.getValue() != null)
-        .filter(e -> {
-          String key = e.getKey().toLowerCase();
-          return key.endsWith("_at") || key.endsWith("_on") || key.contains("date") || key.contains("timestamp");
-        })
+        .filter(e -> e.getValue() != null && e.getKey().toLowerCase().matches(".*(_at|_on|date|timestamp).*"))
         .map(e -> String.valueOf(e.getValue()))
         .findFirst().orElse(null);
   }

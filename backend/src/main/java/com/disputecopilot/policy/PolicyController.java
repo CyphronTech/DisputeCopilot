@@ -22,9 +22,6 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/policies")
 public class PolicyController {
 
-  /** Anything past this is not a policy document someone typed — it's a wrong file. */
-  private static final long MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
-
   private final PolicyDocumentJpaRepository repository;
   private final AuditRecorder audit;
 
@@ -47,9 +44,6 @@ public class PolicyController {
   public PolicyDocumentView upload(@RequestParam("file") MultipartFile file, @RequestParam(value = "title", required = false) String title) throws IOException {
     if (file.isEmpty()) {
       throw new IllegalArgumentException("File is empty");
-    }
-    if (file.getSize() > MAX_UPLOAD_BYTES) {
-      throw new IllegalArgumentException("That file is larger than the 10 MB limit for a policy document.");
     }
     String filename = file.getOriginalFilename() == null ? "policy.txt" : file.getOriginalFilename();
     String content = extractText(file, filename);

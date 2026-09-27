@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { whoami } from './api/client'
 import { Layout } from './components/Layout'
+import { Loading } from './components/ErrorBanner'
 import { AuditLog } from './pages/AuditLog'
 import { CaseList } from './pages/CaseList'
 import { CaseWorkspace } from './pages/CaseWorkspace'
@@ -19,9 +20,7 @@ function RequireAuth() {
 
   // Rendering nothing here used to mean a blank white page for as long as the check took —
   // and forever if it never resolved.
-  if (status === 'checking') {
-    return <div style={{ padding: 40, color: 'var(--text-3)', fontSize: 13 }}>Loading…</div>
-  }
+  if (status === 'checking') return <Loading />
   if (status === 'anon') return <Navigate to="/login" replace />
   return <Outlet />
 }

@@ -23,7 +23,7 @@ public final class LocalSecretKey {
   public static void initialiseIfBundled() {
     if (!"bundled".equals(System.getProperty("spring.profiles.active"))) return;
     // An explicitly supplied key wins — an operator managing their own key should keep it.
-    if (System.getenv("SECRET_KEY") != null || System.getProperty("app.secret-key") != null) return;
+    if (System.getenv("SECRET_KEY") != null) return;
     try {
       Path keyFile = Path.of(System.getProperty("user.home"), "AppData", "Local", "DisputeCopilot", "secret.key");
       if (!Files.exists(keyFile)) {

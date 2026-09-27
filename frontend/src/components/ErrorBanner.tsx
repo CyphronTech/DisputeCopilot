@@ -15,3 +15,7 @@ export function ErrorBanner({ message }: { message: string | null }) {
 export function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
+
+export function Loading({ what = 'Loading…' }: { what?: string }) {
+  return <div style={{ padding: 40, color: 'var(--text-3)', fontSize: 13 }}>{what}</div>
+}
