@@ -160,6 +160,20 @@ export function Setup() {
     })
   }
 
+  function toggleAllInTable(table: string, columns: string[]) {
+    setSelectedColumns((prev) => {
+      const allSelected = columns.every((c) => prev[table]?.has(c))
+      return { ...prev, [table]: new Set(allSelected ? [] : columns) }
+    })
+  }
+
+  function toggleAllTables(select: boolean) {
+    if (!schema) return
+    setSelectedColumns(
+      select ? Object.fromEntries(Object.entries(schema).map(([t, cols]) => [t, new Set(cols)])) : {},
+    )
+  }
+
   async function handleSaveAllowlist() {
     setSavingAllowlist(true)
     try {
@@ -409,9 +423,19 @@ export function Setup() {
                 <p className="desc" style={{ marginTop: 0 }}>
                   Check the tables/columns the agent is allowed to read. Nothing else in this database is ever queried.
                 </p>
+                <div style={{ marginBottom: 12 }}>
+                  <a className="text-link" href="#select-all" style={{ fontSize: 12 }} onClick={(e) => { e.preventDefault(); toggleAllTables(true) }}>Select all</a>
+                  <span style={{ color: 'var(--text-3)', margin: '0 6px' }}>·</span>
+                  <a className="text-link" href="#select-none" style={{ fontSize: 12 }} onClick={(e) => { e.preventDefault(); toggleAllTables(false) }}>Select none</a>
+                </div>
                 {Object.entries(schema).map(([table, columns]) => (
                   <div key={table} style={{ marginBottom: 10 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{table}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>{table}</span>
+                      <a className="text-link" href="#toggle-table" style={{ fontSize: 11.5 }} onClick={(e) => { e.preventDefault(); toggleAllInTable(table, columns) }}>
+                        {columns.every((c) => selectedColumns[table]?.has(c)) ? 'Deselect all' : 'Select all'}
+                      </a>
+                    </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px' }}>
                       {columns.map((col) => (
                         <label key={col} style={{ fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 4 }}>
