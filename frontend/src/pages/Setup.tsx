@@ -468,7 +468,7 @@ export function Setup() {
                       </select>
                     </div>
                     {role === 'orders' && roleMapping[role]?.tableName && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 6, paddingLeft: 178 }}>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6, gridColumn: '2 / -1' }}>
                         <select
                           value={roleMapping[role]?.customerNameColumn ?? ''}
                           onChange={(e) => updateRoleMapping(role, 'customerNameColumn', e.target.value)}
@@ -492,7 +492,7 @@ export function Setup() {
                       </div>
                     )}
                     {role === 'refunds' && roleMapping[role]?.tableName && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 6, paddingLeft: 178 }}>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6, gridColumn: '2 / -1' }}>
                         <select
                           value={roleMapping[role]?.statusColumn ?? ''}
                           onChange={(e) => updateRoleMapping(role, 'statusColumn', e.target.value)}
