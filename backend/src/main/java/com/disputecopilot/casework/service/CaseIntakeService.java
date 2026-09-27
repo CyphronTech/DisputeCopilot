@@ -70,24 +70,35 @@ public class CaseIntakeService {
     TableRoleMappingStore.RoleMapping ordersMapping = roleMapping.load().get("orders");
     String nameColumn = ordersMapping != null && ordersMapping.customerNameColumn() != null ? ordersMapping.customerNameColumn() : "customer_name";
     String emailColumn = ordersMapping != null && ordersMapping.customerEmailColumn() != null ? ordersMapping.customerEmailColumn() : "customer_email";
-    String customerName = orderRows.isEmpty() ? "Unknown customer" : String.valueOf(orderRows.get(0).get(nameColumn));
-    String customerEmail = orderRows.isEmpty() ? "unknown@example.com" : String.valueOf(orderRows.get(0).get(emailColumn));
+    // A normalized schema often keeps the customer in its own table, so the orders row has no
+    // name/email column at all. Reading a missing key would otherwise render the literal text
+    // "null" as the customer's name throughout the UI and the exported report.
+    String customerName = firstNonBlank(orderRows, nameColumn, "Unknown customer");
+    String customerEmail = firstNonBlank(orderRows, emailColumn, "Unknown email");
     CaseEntity entity = new CaseEntity(UUID.randomUUID(), orderId, customerName, customerEmail, CaseState.FETCHING_DATA, Instant.now());
     audit.record("Case opened", "investigation started", orderId, "System", true, "setup", "neutral");
     return cases.save(entity);
   }
 
+  private String firstNonBlank(List<Map<String, Object>> rows, String column, String fallback) {
+    if (rows.isEmpty()) return fallback;
+    Object value = rows.get(0).get(column);
+    return value == null || String.valueOf(value).isBlank() ? fallback : String.valueOf(value);
+  }
+
   private CaseDetail collectEvidence(CaseEntity caseEntity) {
     boolean orderFound = false;
     boolean refundIssued = false;
-    for (String table : connector.approvedTables()) {
+    List<String> roles = connector.approvedTables();
+    TableRoleMappingStore.RoleMapping refundsMapping = roleMapping.load().get("refunds");
+    for (String table : roles) {
       List<Map<String, Object>> rows = connector.readApprovedTable(table, caseEntity.getOrderId());
       queryAudit.save(new ConnectorQueryAuditEntity(UUID.randomUUID(), caseEntity.getId(), table, rows.size(), Instant.now()));
       evidenceItems.save(toEvidenceItem(caseEntity.getId(), table, rows));
       if (table.equals("orders") && !rows.isEmpty()) orderFound = true;
-      if (table.equals("refunds") && rows.stream().anyMatch(this::looksIssued)) refundIssued = true;
+      if (table.equals("refunds") && rows.stream().anyMatch(row -> looksIssued(row, refundsMapping))) refundIssued = true;
     }
-    audit.record("Merchant DB evidence collected", connector.approvedTables().size() + " tables queried", caseEntity.getOrderId(), "System", true, "db", "accent");
+    audit.record("Merchant DB evidence collected", roles.size() + " tables queried", caseEntity.getOrderId(), "System", true, "db", "accent");
     List<EvidenceItemEntity> evidence = evidenceItems.findByCaseId(caseEntity.getId());
 
     if (!orderFound) {
@@ -150,8 +161,7 @@ public class CaseIntakeService {
     return toDetail(caseEntity, evidence);
   }
 
-  private boolean looksIssued(Map<String, Object> refundRow) {
-    TableRoleMappingStore.RoleMapping refundsMapping = roleMapping.load().get("refunds");
+  private boolean looksIssued(Map<String, Object> refundRow, TableRoleMappingStore.RoleMapping refundsMapping) {
     String statusColumn = refundsMapping != null && refundsMapping.statusColumn() != null ? refundsMapping.statusColumn() : "status";
     String issuedValue = refundsMapping != null && refundsMapping.issuedValue() != null ? refundsMapping.issuedValue() : "issued";
     Object status = refundRow.get(statusColumn);
@@ -168,7 +178,24 @@ public class CaseIntakeService {
         .filter(e -> e.getKey().toLowerCase().contains("url") && e.getValue() != null)
         .map(e -> String.valueOf(e.getValue()))
         .findFirst().orElse(null);
-    return new EvidenceItemEntity(UUID.randomUUID(), caseId, kind, table, describe(row), table + "." + row.keySet().iterator().next(), null, attachmentUrl);
+    return new EvidenceItemEntity(UUID.randomUUID(), caseId, kind, table, describe(row), table + "." + row.keySet().iterator().next(), observedAt(row), attachmentUrl);
+  }
+
+  /**
+   * The timeline needs a date per evidence item, but which column carries it differs per
+   * merchant schema (created_at, shipped_at, occurred_at, requested_on...). Picking the first
+   * date-ish column beats leaving every item undated, and an unrecognised schema just falls
+   * back to no date rather than guessing wrong.
+   */
+  private String observedAt(Map<String, Object> row) {
+    return row.entrySet().stream()
+        .filter(e -> e.getValue() != null)
+        .filter(e -> {
+          String key = e.getKey().toLowerCase();
+          return key.endsWith("_at") || key.endsWith("_on") || key.contains("date") || key.contains("timestamp");
+        })
+        .map(e -> String.valueOf(e.getValue()))
+        .findFirst().orElse(null);
   }
 
   private String describe(Map<String, Object> row) {
@@ -185,7 +212,7 @@ public class CaseIntakeService {
   }
 
   public CaseDetail get(String caseId) {
-    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(NoSuchElementException::new);
+    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(() -> new NoSuchElementException("Case not found"));
     return toDetail(entity, evidenceItems.findByCaseId(entity.getId()));
   }
 
@@ -194,7 +221,7 @@ public class CaseIntakeService {
     if (!recommendation.equals("CONTEST") && !recommendation.equals("ACCEPT")) {
       throw new IllegalArgumentException("recommendation must be CONTEST or ACCEPT");
     }
-    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(NoSuchElementException::new);
+    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(() -> new NoSuchElementException("Case not found"));
     String summary = "An analyst reviewed order " + entity.getOrderId() + " by hand and decided to "
         + (recommendation.equals("CONTEST") ? "contest" : "accept") + " the dispute"
         + (note == null || note.isBlank() ? "." : ", noting: " + note);

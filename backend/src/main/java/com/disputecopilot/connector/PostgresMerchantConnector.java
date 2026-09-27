@@ -35,6 +35,21 @@ public class PostgresMerchantConnector {
 
   private static final List<String> ROLES = List.of("orders", "payments", "fulfillment", "refunds", "returns", "communications");
 
+  /**
+   * Table and column names are concatenated into SQL (they can't be bound as parameters), so
+   * every identifier is checked against this before it reaches a statement. The allowlist is
+   * admin-approved and validated on save, but this is the single chokepoint every read goes
+   * through — enforcing it here means no future caller or storage path can smuggle SQL in.
+   */
+  private static final java.util.regex.Pattern SAFE_IDENTIFIER = java.util.regex.Pattern.compile("[A-Za-z_][A-Za-z0-9_$]*");
+
+  static String requireSafeIdentifier(String identifier) {
+    if (identifier == null || !SAFE_IDENTIFIER.matcher(identifier).matches()) {
+      throw new IllegalArgumentException("Unsafe SQL identifier: " + identifier);
+    }
+    return identifier;
+  }
+
   private final SchemaDiscoveryService schemaDiscovery;
   private final TableAllowlistStore allowlistStore;
   private final ConnectorAllowlistProperties fixtureAllowlist;
@@ -62,7 +77,9 @@ public class PostgresMerchantConnector {
     if (columns == null) {
       throw new IllegalArgumentException("Table not on the approved allowlist: " + table);
     }
-    String columnList = String.join(", ", columns);
+    requireSafeIdentifier(table);
+    requireSafeIdentifier(orderIdColumn);
+    String columnList = columns.stream().map(PostgresMerchantConnector::requireSafeIdentifier).collect(java.util.stream.Collectors.joining(", "));
     // Cast to text: the order-id column's real type varies by merchant schema (int, bigint,
     // uuid, varchar, ...) but the order ID always arrives here as a String — casting the
     // column instead of guessing its type works regardless of what it actually is.

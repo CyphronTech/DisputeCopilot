@@ -3,3 +3,9 @@
 logging:
   file:
     name: ${user.home}/AppData/Local/DisputeCopilot/app.log
+
+server:
+  # The desktop build is for the person sitting at this machine. Without this it binds every
+  # interface, putting the merchant's dispute data and login page on the local network (office
+  # wifi, coffee shop) for anyone who can reach port 8080.
+  address: 127.0.0.1

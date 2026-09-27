@@ -70,7 +70,7 @@ public class SchemaMappingSuggester {
   }
 
   private Map<String, TableRoleMappingStore.RoleMapping> parseAndValidate(String raw, Map<String, List<String>> schema) {
-    String cleaned = raw.strip().replaceAll("^```json|^```|```$", "").strip();
+    String cleaned = com.disputecopilot.agent.LlmClient.extractJsonObject(raw);
     Map<String, TableRoleMappingStore.RoleMapping> result = new LinkedHashMap<>();
     try {
       JsonNode root = json.readTree(cleaned);

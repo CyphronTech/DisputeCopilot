@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getAuditEvents } from '../api/client'
 import { Icon } from '../components/Icon'
+import { ErrorBanner, messageOf } from '../components/ErrorBanner'
 import { downloadCsv } from '../lib/csv'
 import type { AuditEvent } from '../api/types'
 
@@ -16,10 +17,11 @@ function categoryOf(title: string): (typeof TABS)[number] {
 export function AuditLog() {
   const [events, setEvents] = useState<AuditEvent[]>([])
   const [tab, setTab] = useState<(typeof TABS)[number]>(TABS[0])
+  const [error, setError] = useState<string | null>(null)
   const visible = events.filter((e) => tab === 'All events' || categoryOf(e.title) === tab)
 
   useEffect(() => {
-    getAuditEvents().then(setEvents)
+    getAuditEvents().then(setEvents).catch((e) => setError(messageOf(e)))
   }, [])
 
   return (
@@ -41,6 +43,8 @@ export function AuditLog() {
           </button>
         </div>
       </div>
+
+      <ErrorBanner message={error} />
 
       <div className="filters">
         {TABS.map((t) => (

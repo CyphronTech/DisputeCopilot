@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { getPolicies, uploadPolicy } from '../api/client'
+import { deletePolicy, getPolicies, uploadPolicy } from '../api/client'
 import { Icon } from '../components/Icon'
 import { Tag } from '../components/Tag'
+import { ErrorBanner } from '../components/ErrorBanner'
 import type { PolicyDocument, PolicyStatus } from '../api/types'
 
 const TYPE_FILTERS = ['All types', 'Terms & conditions', 'Shipping & delivery', 'Refund & replacement'] as const
@@ -31,10 +32,12 @@ export function PolicyLibrary() {
   const visible = policies.filter((doc) => filter === 'All types' || categoryOf(doc.title) === filter)
 
   function refresh() {
-    return getPolicies().then((docs) => {
-      setPolicies(docs)
-      setSelected((current) => docs.find((d) => d.documentId === current?.documentId) ?? docs[0] ?? null)
-    })
+    return getPolicies()
+      .then((docs) => {
+        setPolicies(docs)
+        setSelected((current) => docs.find((d) => d.documentId === current?.documentId) ?? docs[0] ?? null)
+      })
+      .catch((e) => setUploadError(e instanceof Error ? e.message : String(e)))
   }
 
   useEffect(() => {
@@ -49,9 +52,20 @@ export function PolicyLibrary() {
       await uploadPolicy(file)
       await refresh()
     } catch (e) {
-      setUploadError(`Could not upload policy: ${e}`)
+      setUploadError(e instanceof Error ? e.message : String(e))
     } finally {
       setUploading(false)
+    }
+  }
+
+  async function handleDelete(doc: PolicyDocument) {
+    if (!window.confirm(`Remove "${doc.title}"? The AI will stop citing it in new cases.`)) return
+    setUploadError(null)
+    try {
+      await deletePolicy(doc.documentId)
+      await refresh()
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : String(e))
     }
   }
 
@@ -78,11 +92,7 @@ export function PolicyLibrary() {
         </div>
       </div>
 
-      {uploadError && (
-        <div className="card" style={{ background: 'var(--error-dim)', color: 'var(--error)', marginBottom: 16, fontSize: 12.5, padding: '10px 14px' }}>
-          {uploadError}
-        </div>
-      )}
+      <ErrorBanner message={uploadError} />
 
       <div className="filters">
         {TYPE_FILTERS.map((f) => (
@@ -101,11 +111,12 @@ export function PolicyLibrary() {
                 <th>Version</th>
                 <th>Effective</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {visible.length === 0 && (
-                <tr><td colSpan={4} style={{ color: 'var(--text-3)', textAlign: 'center', padding: 20 }}>No documents in this category.</td></tr>
+                <tr><td colSpan={5} style={{ color: 'var(--text-3)', textAlign: 'center', padding: 20 }}>No documents in this category.</td></tr>
               )}
               {visible.map((doc) => (
                 <tr key={doc.documentId} onClick={() => setSelected(doc)} style={{ cursor: 'pointer' }}>
@@ -124,6 +135,18 @@ export function PolicyLibrary() {
                   </td>
                   <td>
                     <Tag tone={STATUS_TONE[doc.status]}>{doc.status}</Tag>
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-ghost"
+                      title={`Remove ${doc.title}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete(doc)
+                      }}
+                    >
+                      Remove
+                    </button>
                   </td>
                 </tr>
               ))}

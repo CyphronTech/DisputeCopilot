@@ -1,13 +1,17 @@
 package com.disputecopilot.policy;
 
+import com.disputecopilot.audit.AuditRecorder;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,10 +22,15 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/policies")
 public class PolicyController {
 
-  private final PolicyDocumentJpaRepository repository;
+  /** Anything past this is not a policy document someone typed — it's a wrong file. */
+  private static final long MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-  public PolicyController(PolicyDocumentJpaRepository repository) {
+  private final PolicyDocumentJpaRepository repository;
+  private final AuditRecorder audit;
+
+  public PolicyController(PolicyDocumentJpaRepository repository, AuditRecorder audit) {
     this.repository = repository;
+    this.audit = audit;
   }
 
   public record VersionView(String version, String status, LocalDate effectiveFrom, LocalDate effectiveTo) {}
@@ -39,21 +48,45 @@ public class PolicyController {
     if (file.isEmpty()) {
       throw new IllegalArgumentException("File is empty");
     }
+    if (file.getSize() > MAX_UPLOAD_BYTES) {
+      throw new IllegalArgumentException("That file is larger than the 10 MB limit for a policy document.");
+    }
     String filename = file.getOriginalFilename() == null ? "policy.txt" : file.getOriginalFilename();
     String content = extractText(file, filename);
+    if (content.isBlank()) {
+      throw new IllegalArgumentException("No readable text was found in " + filename + " — a scanned image PDF won't work, it needs selectable text.");
+    }
     String docTitle = (title == null || title.isBlank()) ? filename : title;
     PolicyDocumentEntity entity = new PolicyDocumentEntity(
         UUID.randomUUID(), docTitle, filename, "1.0", "ACTIVE", LocalDate.now(), null, content);
-    return toView(repository.save(entity));
+    PolicyDocumentView saved = toView(repository.save(entity));
+    audit.record("Policy document uploaded", docTitle, null, "Admin", false, "file", "neutral");
+    return saved;
   }
 
+  @DeleteMapping("/{documentId}")
+  public void delete(@PathVariable String documentId) {
+    PolicyDocumentEntity entity = repository.findById(UUID.fromString(documentId))
+        .orElseThrow(() -> new NoSuchElementException("No such policy document"));
+    repository.delete(entity);
+    audit.record("Policy document removed", entity.getTitle(), null, "Admin", false, "file", "warn");
+  }
+
+  /**
+   * Only formats we can actually turn into text. Decoding a .docx or .xlsx as UTF-8 would
+   * "succeed" and store mojibake, which then gets fed to the model as if it were policy.
+   */
   private String extractText(MultipartFile file, String filename) throws IOException {
-    if (filename.toLowerCase().endsWith(".pdf")) {
+    String lower = filename.toLowerCase();
+    if (lower.endsWith(".pdf")) {
       try (var document = Loader.loadPDF(file.getBytes())) {
         return new PDFTextStripper().getText(document);
       }
     }
-    return new String(file.getBytes(), StandardCharsets.UTF_8);
+    if (lower.endsWith(".txt") || lower.endsWith(".md")) {
+      return new String(file.getBytes(), StandardCharsets.UTF_8);
+    }
+    throw new IllegalArgumentException("Unsupported file type — upload a PDF, TXT or MD policy document.");
   }
 
   private PolicyDocumentView toView(PolicyDocumentEntity e) {

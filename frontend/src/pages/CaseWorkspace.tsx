@@ -4,6 +4,7 @@ import { getCase, resolveManually } from '../api/client'
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
 import { StateTag, Tag, recommendationLabel } from '../components/Tag'
+import { ErrorBanner, messageOf } from '../components/ErrorBanner'
 import type { CaseDetail } from '../api/types'
 
 export function CaseWorkspace() {
@@ -11,20 +12,35 @@ export function CaseWorkspace() {
   const [detail, setDetail] = useState<CaseDetail | null>(null)
   const [note, setNote] = useState('')
   const [resolving, setResolving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    getCase(caseId).then(setDetail)
+    getCase(caseId).then(setDetail).catch((e) => setError(messageOf(e)))
   }, [caseId])
-
-  if (!detail) return null
 
   async function handleResolve(recommendation: 'CONTEST' | 'ACCEPT') {
     setResolving(true)
+    setError(null)
     try {
       setDetail(await resolveManually(caseId, recommendation, note))
+    } catch (e) {
+      setError(messageOf(e))
     } finally {
       setResolving(false)
     }
+  }
+
+  if (!detail) {
+    return (
+      <>
+        <Link className="back-link" to="/">
+          <Icon name="arrow-left" />
+          Back to cases
+        </Link>
+        <ErrorBanner message={error} />
+        {!error && <div style={{ padding: 40, color: 'var(--text-3)', fontSize: 13 }}>Loading case…</div>}
+      </>
+    )
   }
 
   return (
@@ -47,6 +63,8 @@ export function CaseWorkspace() {
           <Icon name="arrow-left" />
         </Link>
       </div>
+
+      <ErrorBanner message={error} />
 
       <div className="card panel" style={{ marginBottom: 16, background: 'var(--accent-dim)' }}>
         <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, color: 'var(--text-3)', marginBottom: 6 }}>In plain English</div>

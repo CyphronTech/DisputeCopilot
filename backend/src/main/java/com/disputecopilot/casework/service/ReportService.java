@@ -43,14 +43,20 @@ public class ReportService {
   }
 
   public DraftReport get(String caseId) {
-    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(NoSuchElementException::new);
+    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(() -> new NoSuchElementException("Case not found"));
     List<EvidenceItemEntity> items = evidenceItems.findByCaseId(entity.getId());
     return build(entity, items);
   }
 
   @Transactional
   public DraftReport approve(String caseId) {
-    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(NoSuchElementException::new);
+    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(() -> new NoSuchElementException("Case not found"));
+    if (entity.getRecommendation() == null) {
+      // Nothing was ever decided for this case (the AI review failed, or no order was found),
+      // so there is no recommendation to approve — approving would export a report whose
+      // headline decision is blank.
+      throw new IllegalArgumentException("This case has no recommendation yet — resolve it manually before approving.");
+    }
     entity.setState(CaseState.APPROVED);
     cases.save(entity);
     audit.record("Report approved", "recommendation " + entity.getRecommendation(), entity.getOrderId(), "Admin", false, "check", "success");
@@ -59,7 +65,7 @@ public class ReportService {
 
   @Transactional
   public DraftReport requestChanges(String caseId, String note) {
-    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(NoSuchElementException::new);
+    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(() -> new NoSuchElementException("Case not found"));
     entity.applyReview(entity.getRecommendation(), entity.getConfidence(), note, entity.getSummary(), CaseState.MANUAL_REVIEW_REQUIRED);
     cases.save(entity);
     audit.record("Report sent back for changes", note == null || note.isBlank() ? "no note provided" : note, entity.getOrderId(), "Admin", false, "alert", "warn");
@@ -84,7 +90,11 @@ public class ReportService {
             .reduce((a, b) -> a + "\n" + b).orElse("");
     String policyVersion = caseCitations.isEmpty() ? "No policy matched" : caseCitations.get(0).getVersion();
 
-    String content = entity.getId() + "|" + entity.getRecommendation() + "|" + entity.getConfidence() + "|" + index;
+    // Hash everything the report actually asserts. Hashing only the id/recommendation/evidence
+    // index would leave the summary and policy quotes — the parts a reader relies on — outside
+    // the thing the hash claims to attest to.
+    String content = String.join("|", entity.getId().toString(), String.valueOf(entity.getRecommendation()),
+        String.valueOf(entity.getConfidence()), caseSummary, policyCitationsSummary, index.toString());
     return new DraftReport(
         entity.getId().toString(), entity.getOrderId(), 1, approved, caseSummary, index,
         policyCitationsSummary,

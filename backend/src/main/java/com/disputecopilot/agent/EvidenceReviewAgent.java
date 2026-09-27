@@ -95,7 +95,7 @@ public class EvidenceReviewAgent {
   }
 
   private Review parse(String raw, List<PolicyRetrievalService.Match> matches) {
-    String cleaned = raw.strip().replaceAll("^```json|^```|```$", "").strip();
+    String cleaned = LlmClient.extractJsonObject(raw);
     try {
       JsonNode node = json.readTree(cleaned);
       String recommendation = node.path("recommendation").asText().trim().toUpperCase(java.util.Locale.ROOT);

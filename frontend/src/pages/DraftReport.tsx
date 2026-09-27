@@ -4,6 +4,7 @@ import { approveReport, getDraftReport, requestReportChanges } from '../api/clie
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
 import { recommendationLabel } from '../components/Tag'
+import { ErrorBanner, messageOf } from '../components/ErrorBanner'
 import type { DraftReport as DraftReportData } from '../api/types'
 
 export function DraftReport() {
@@ -11,16 +12,42 @@ export function DraftReport() {
   const navigate = useNavigate()
   const [report, setReport] = useState<DraftReportData | null>(null)
   const [changesNote, setChangesNote] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    getDraftReport(caseId).then(setReport)
+    getDraftReport(caseId).then(setReport).catch((e) => setError(messageOf(e)))
   }, [caseId])
 
-  if (!report) return null
-
   async function handleSubmitChanges() {
-    await requestReportChanges(caseId, changesNote ?? '')
-    navigate(`/cases/${caseId}`)
+    setError(null)
+    try {
+      await requestReportChanges(caseId, changesNote ?? '')
+      navigate(`/cases/${caseId}`)
+    } catch (e) {
+      setError(messageOf(e))
+    }
+  }
+
+  async function handleApprove() {
+    setError(null)
+    try {
+      setReport(await approveReport(caseId))
+    } catch (e) {
+      setError(messageOf(e))
+    }
+  }
+
+  if (!report) {
+    return (
+      <>
+        <Link className="back-link" to={`/cases/${caseId}`}>
+          <Icon name="arrow-left" />
+          Back to case
+        </Link>
+        <ErrorBanner message={error} />
+        {!error && <div style={{ padding: 40, color: 'var(--text-3)', fontSize: 13 }}>Loading report…</div>}
+      </>
+    )
   }
 
   return (
@@ -35,6 +62,8 @@ export function DraftReport() {
           <p className="page-sub">Revision {report.revision} · {report.approved ? 'approved' : 'not yet approved'}</p>
         </div>
       </div>
+
+      <ErrorBanner message={error} />
 
       <div className="report-grid">
         <div className="card doc">
@@ -81,7 +110,7 @@ export function DraftReport() {
             <div className="hash">{report.contentHash}</div>
           </div>
           <div className="card actions">
-            <button className="btn btn-primary" onClick={() => approveReport(caseId).then(setReport)}>
+            <button className="btn btn-primary" onClick={handleApprove}>
               <Icon name="check" />
               Approve this revision
             </button>

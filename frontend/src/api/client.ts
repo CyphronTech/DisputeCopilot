@@ -1,115 +1,130 @@
 import type { AuditEvent, CaseDetail, CaseMetrics, CaseSummary, DraftReport, PolicyDocument, SaveModelConfigRequest } from './types'
 
+/**
+ * Every call goes through here so a failure surfaces as a readable message instead of a
+ * JSON parse error on an error body. Sessions expire after 12h idle; without the 401 branch
+ * the app would sit on a broken page making calls that can never succeed.
+ */
+async function request(path: string, init?: RequestInit): Promise<Response> {
+  let response: Response
+  try {
+    response = await fetch(path, init)
+  } catch {
+    throw new Error('Could not reach DisputeCopilot — check that the app is still running.')
+  }
+  if (response.status === 401) {
+    if (!window.location.pathname.startsWith('/login')) window.location.assign('/login')
+    throw new Error('Your session has expired. Please sign in again.')
+  }
+  if (!response.ok) {
+    throw new Error((await response.text()) || `Request failed (${response.status})`)
+  }
+  return response
+}
+
+async function getJson<T>(path: string): Promise<T> {
+  return (await request(path)).json() as Promise<T>
+}
+
+async function sendJson<T>(path: string, method: string, body?: unknown): Promise<T> {
+  const response = await request(path, {
+    method,
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  return response.json() as Promise<T>
+}
+
 export async function login(email: string, password: string): Promise<void> {
+  // Deliberately not via request(): a 401 here means wrong credentials, not an expired session.
   const r = await fetch('/api/v1/session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-  })
+  }).catch(() => null)
+  if (!r) throw new Error('Could not reach DisputeCopilot — check that the app is still running.')
   if (!r.ok) throw new Error('Invalid email or password')
 }
 
 export async function logout(): Promise<void> {
-  await fetch('/api/v1/session', { method: 'DELETE' })
+  await fetch('/api/v1/session', { method: 'DELETE' }).catch(() => null)
 }
 
+/** The auth probe itself — any failure just means "not signed in", never a redirect loop. */
 export async function whoami(): Promise<{ email: string } | null> {
-  const r = await fetch('/api/v1/session')
-  if (!r.ok) return null
-  return r.json()
+  try {
+    const r = await fetch('/api/v1/session')
+    return r.ok ? await r.json() : null
+  } catch {
+    return null
+  }
 }
 
 export async function getCases(): Promise<CaseSummary[]> {
-  return fetch('/api/v1/cases').then((r) => r.json())
+  return getJson<CaseSummary[]>('/api/v1/cases')
 }
 
 export async function getCaseMetrics(): Promise<CaseMetrics> {
-  const r = await fetch('/api/v1/cases/metrics')
-  const m = await r.json()
+  const m = await getJson<CaseMetrics>('/api/v1/cases/metrics')
   return { openCases: m.openCases, awaitingApproval: m.awaitingApproval, manualReview: m.manualReview, exportedWithoutEditsPct: m.exportedWithoutEditsPct }
 }
 
 export async function createCase(orderId: string): Promise<CaseDetail> {
-  const r = await fetch('/api/v1/cases', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ orderId }),
-  })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return sendJson<CaseDetail>('/api/v1/cases', 'POST', { orderId })
 }
 
 export async function getCase(caseId: string): Promise<CaseDetail> {
-  return fetch(`/api/v1/cases/${caseId}`).then((r) => r.json())
+  return getJson<CaseDetail>(`/api/v1/cases/${caseId}`)
 }
 
 export async function resolveManually(caseId: string, recommendation: 'CONTEST' | 'ACCEPT', note: string): Promise<CaseDetail> {
-  const r = await fetch(`/api/v1/cases/${caseId}/manual-resolution`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ recommendation, note }),
-  })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return sendJson<CaseDetail>(`/api/v1/cases/${caseId}/manual-resolution`, 'POST', { recommendation, note })
 }
 
 export async function getDraftReport(caseId: string): Promise<DraftReport> {
-  return fetch(`/api/v1/cases/${caseId}/report`).then((r) => r.json())
+  return getJson<DraftReport>(`/api/v1/cases/${caseId}/report`)
 }
 
 export async function approveReport(caseId: string): Promise<DraftReport> {
-  const r = await fetch(`/api/v1/cases/${caseId}/report/approve`, { method: 'POST' })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return sendJson<DraftReport>(`/api/v1/cases/${caseId}/report/approve`, 'POST')
 }
 
 export async function requestReportChanges(caseId: string, note: string): Promise<DraftReport> {
-  const r = await fetch(`/api/v1/cases/${caseId}/report/request-changes`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ note }),
-  })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return sendJson<DraftReport>(`/api/v1/cases/${caseId}/report/request-changes`, 'POST', { note })
 }
 
 export async function getPolicies(): Promise<PolicyDocument[]> {
-  return fetch('/api/v1/policies').then((r) => r.json())
+  return getJson<PolicyDocument[]>('/api/v1/policies')
 }
 
 export async function uploadPolicy(file: File): Promise<PolicyDocument> {
   const form = new FormData()
   form.append('file', file)
-  const r = await fetch('/api/v1/policies', { method: 'POST', body: form })
-  if (!r.ok) throw new Error(await r.text())
+  const r = await request('/api/v1/policies', { method: 'POST', body: form })
   return r.json()
 }
 
+export async function deletePolicy(documentId: string): Promise<void> {
+  await request(`/api/v1/policies/${documentId}`, { method: 'DELETE' })
+}
+
 export async function getAuditEvents(): Promise<AuditEvent[]> {
-  const r = await fetch('/api/v1/audit')
-  const events = await r.json()
-  return events.map((e: AuditEvent) => ({ ...e, timestamp: new Date(e.timestamp).toLocaleString() }))
+  const events = await getJson<AuditEvent[]>('/api/v1/audit')
+  return events.map((e) => ({ ...e, timestamp: new Date(e.timestamp).toLocaleString() }))
 }
 
 export async function getModelConfig() {
-  const r = await fetch('/api/v1/setup/model')
-  const m = await r.json()
+  const m = await getJson<{ provider?: string; baseUrl?: string; maskedKey?: string; model?: string; lastTestedAt?: string }>('/api/v1/setup/model')
   return { provider: m.provider ?? '', baseUrl: m.baseUrl ?? '', maskedKey: m.maskedKey, model: m.model ?? '', lastTestedAt: m.lastTestedAt }
 }
 
 export async function saveModelConfig(req: SaveModelConfigRequest) {
-  const r = await fetch('/api/v1/setup/model', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
-  })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return sendJson<{ provider: string; baseUrl: string; maskedKey: string | null; model: string; lastTestedAt: string | null }>(
+    '/api/v1/setup/model', 'PUT', req)
 }
 
 export async function testModelConfig(): Promise<{ ok: boolean; message: string }> {
-  const r = await fetch('/api/v1/setup/model/test', { method: 'POST' })
-  return r.json()
+  return sendJson<{ ok: boolean; message: string }>('/api/v1/setup/model/test', 'POST')
 }
 
 export interface ConnectorView {
@@ -123,44 +138,27 @@ export interface ConnectorView {
 }
 
 export async function getConnectorConfig(): Promise<ConnectorView> {
-  const r = await fetch('/api/v1/setup/connector')
-  return r.json()
+  return getJson<ConnectorView>('/api/v1/setup/connector')
 }
 
 export async function saveConnectorConfig(req: { host: string; port: number; database: string; username: string; password: string; driver: string }): Promise<ConnectorView> {
-  const r = await fetch('/api/v1/setup/connector', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
-  })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return sendJson<ConnectorView>('/api/v1/setup/connector', 'PUT', req)
 }
 
 export async function testConnectorConfig(): Promise<{ ok: boolean; message: string }> {
-  const r = await fetch('/api/v1/setup/connector/test', { method: 'POST' })
-  return r.json()
+  return sendJson<{ ok: boolean; message: string }>('/api/v1/setup/connector/test', 'POST')
 }
 
 export async function discoverSchema(): Promise<Record<string, string[]>> {
-  const r = await fetch('/api/v1/setup/connector/schema')
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return getJson<Record<string, string[]>>('/api/v1/setup/connector/schema')
 }
 
 export async function getAllowlist(): Promise<Record<string, string[]>> {
-  const r = await fetch('/api/v1/setup/connector/allowlist')
-  return r.json()
+  return getJson<Record<string, string[]>>('/api/v1/setup/connector/allowlist')
 }
 
 export async function saveAllowlist(allowlist: Record<string, string[]>): Promise<Record<string, string[]>> {
-  const r = await fetch('/api/v1/setup/connector/allowlist', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ allowlist }),
-  })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return sendJson<Record<string, string[]>>('/api/v1/setup/connector/allowlist', 'PUT', { allowlist })
 }
 
 export interface RoleMapping {
@@ -173,24 +171,15 @@ export interface RoleMapping {
 }
 
 export async function suggestTableMapping(): Promise<Record<string, RoleMapping>> {
-  const r = await fetch('/api/v1/setup/connector/suggest-mapping')
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return getJson<Record<string, RoleMapping>>('/api/v1/setup/connector/suggest-mapping')
 }
 
 export async function getTableRoleMapping(): Promise<Record<string, RoleMapping>> {
-  const r = await fetch('/api/v1/setup/connector/role-mapping')
-  return r.json()
+  return getJson<Record<string, RoleMapping>>('/api/v1/setup/connector/role-mapping')
 }
 
 export async function saveTableRoleMapping(mapping: Record<string, RoleMapping>): Promise<Record<string, RoleMapping>> {
-  const r = await fetch('/api/v1/setup/connector/role-mapping', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(mapping),
-  })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return sendJson<Record<string, RoleMapping>>('/api/v1/setup/connector/role-mapping', 'PUT', mapping)
 }
 
 export interface ShopifyView {
@@ -200,22 +189,14 @@ export interface ShopifyView {
 }
 
 export async function getShopifyConfig(): Promise<ShopifyView> {
-  const r = await fetch('/api/v1/setup/shopify')
-  return r.json()
+  return getJson<ShopifyView>('/api/v1/setup/shopify')
 }
 
 export async function saveShopifyConfig(req: { shopDomain: string; accessToken: string }): Promise<ShopifyView> {
-  const r = await fetch('/api/v1/setup/shopify', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
-  })
-  if (!r.ok) throw new Error(await r.text())
-  return r.json()
+  return sendJson<ShopifyView>('/api/v1/setup/shopify', 'PUT', req)
 }
 
 export async function testShopifyConfig(): Promise<{ ok: boolean; message: string }> {
-  const r = await fetch('/api/v1/setup/shopify/test', { method: 'POST' })
-  return r.json()
+  return sendJson<{ ok: boolean; message: string }>('/api/v1/setup/shopify/test', 'POST')
 }
 

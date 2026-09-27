@@ -88,11 +88,29 @@ public class ConnectorSetupController {
     return allowlistStore.load();
   }
 
+  /**
+   * Allowlisted table/column names end up concatenated into the connector's SQL, so they are
+   * checked against the live schema here rather than trusted from the request body — anything
+   * that isn't a real table/column the merchant database actually has is rejected outright.
+   */
   @PutMapping("/allowlist")
-  public Map<String, List<String>> saveAllowlist(@RequestBody AllowlistRequest request) {
-    allowlistStore.save(request.allowlist());
-    int tableCount = request.allowlist().size();
-    audit.record("Connector allowlist updated", tableCount + " tables approved", null, "Admin", false, "setup", "neutral");
+  public Map<String, List<String>> saveAllowlist(@RequestBody AllowlistRequest request) throws Exception {
+    Map<String, List<String>> schema = schemaDiscovery.discover();
+    Map<String, List<String>> validated = new java.util.LinkedHashMap<>();
+    for (var entry : request.allowlist().entrySet()) {
+      List<String> realColumns = schema.get(entry.getKey());
+      if (realColumns == null) {
+        throw new IllegalArgumentException("No such table in the merchant database: " + entry.getKey());
+      }
+      for (String column : entry.getValue()) {
+        if (!realColumns.contains(column)) {
+          throw new IllegalArgumentException("No such column in " + entry.getKey() + ": " + column);
+        }
+      }
+      validated.put(entry.getKey(), List.copyOf(entry.getValue()));
+    }
+    allowlistStore.save(validated);
+    audit.record("Connector allowlist updated", validated.size() + " tables approved", null, "Admin", false, "setup", "neutral");
     return allowlistStore.load();
   }
 

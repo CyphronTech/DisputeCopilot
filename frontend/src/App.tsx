@@ -17,7 +17,11 @@ function RequireAuth() {
     whoami().then((user) => setStatus(user ? 'authed' : 'anon'))
   }, [])
 
-  if (status === 'checking') return null
+  // Rendering nothing here used to mean a blank white page for as long as the check took —
+  // and forever if it never resolved.
+  if (status === 'checking') {
+    return <div style={{ padding: 40, color: 'var(--text-3)', fontSize: 13 }}>Loading…</div>
+  }
   if (status === 'anon') return <Navigate to="/login" replace />
   return <Outlet />
 }

@@ -62,9 +62,20 @@ public class SetupController {
   }
 
   private ModelConfigView toView(ModelConfigEntity e) {
-    String apiKey = crypto.decrypt(e.getApiKey());
-    String masked = apiKey == null || apiKey.length() < 4
-        ? null : "••••" + apiKey.substring(apiKey.length() - 4);
-    return new ModelConfigView(e.getProvider(), e.getBaseUrl(), masked, e.getModel(), e.getLastTestedAt());
+    return new ModelConfigView(e.getProvider(), e.getBaseUrl(), maskedKey(e.getApiKey()), e.getModel(), e.getLastTestedAt());
+  }
+
+  /**
+   * A key encrypted under a different secret (restored backup, cleared secret.key) can't be
+   * read back. That must not take the whole Setup page down with it — the admin needs to reach
+   * this page precisely so they can re-enter the key.
+   */
+  private String maskedKey(String stored) {
+    try {
+      String apiKey = crypto.decrypt(stored);
+      return apiKey == null || apiKey.length() < 4 ? null : "••••" + apiKey.substring(apiKey.length() - 4);
+    } catch (RuntimeException unreadable) {
+      return "unreadable — re-enter your key";
+    }
   }
 }

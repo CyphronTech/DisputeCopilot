@@ -15,7 +15,8 @@ VERSION=$(grep -m1 -oP '(?<=<version>)[0-9]+\.[0-9]+\.[0-9]+(?=-SNAPSHOT</versio
 echo "Building version $VERSION"
 
 ( cd "$ROOT_DIR/frontend" && npm run build )
-( cd "$ROOT_DIR/backend" && mvn -o -q -P package-app clean package -DskipTests )
+# Tests run as part of packaging on purpose: a release that skipped them isn't verified.
+( cd "$ROOT_DIR/backend" && mvn -o -q -P package-app clean package )
 
 rm -rf "$ROOT_DIR/dist" "$ROOT_DIR/dist-input"
 mkdir -p "$ROOT_DIR/dist-input"

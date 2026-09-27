@@ -5,6 +5,7 @@ import { downloadCsv } from '../lib/csv'
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
 import { StateTag, recommendationLabel } from '../components/Tag'
+import { ErrorBanner, messageOf } from '../components/ErrorBanner'
 import type { CaseMetrics, CaseSummary } from '../api/types'
 
 const FILTERS = ['All states', 'Awaiting approval', 'Manual review', 'Exported'] as const
@@ -21,8 +22,8 @@ export function CaseList() {
   const [newOrderId, setNewOrderId] = useState<string | null>(null)
 
   useEffect(() => {
-    getCases().then(setCases)
-    getCaseMetrics().then(setMetrics)
+    getCases().then(setCases).catch((e) => setError(messageOf(e)))
+    getCaseMetrics().then(setMetrics).catch((e) => setError(messageOf(e)))
   }, [])
 
   async function handleNewInvestigation() {
@@ -34,7 +35,7 @@ export function CaseList() {
       navigate(`/cases/${created.caseId}`)
       setNewOrderId(null)
     } catch (e) {
-      setError(`Could not create case: ${e}`)
+      setError(`Could not create case: ${messageOf(e)}`)
     } finally {
       setCreating(false)
     }
@@ -93,11 +94,7 @@ export function CaseList() {
       <p style={{ color: 'var(--text-3)', fontSize: 12.5, marginTop: -8, marginBottom: 16 }}>
         "New investigation" looks up the order in your store's records, then an AI reviews it and tells you whether to contest or accept the dispute — or flags it for you to decide.
       </p>
-      {error && (
-        <div className="card" style={{ background: 'var(--error-dim)', color: 'var(--error)', marginBottom: 16, fontSize: 12.5, padding: '10px 14px' }}>
-          {error}
-        </div>
-      )}
+      <ErrorBanner message={error} />
 
       {metrics && (
         <div className="metric-strip">

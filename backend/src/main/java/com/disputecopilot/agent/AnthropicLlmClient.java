@@ -29,7 +29,9 @@ class AnthropicLlmClient implements LlmClient {
     try {
       String body = JSON.writeValueAsString(Map.of(
           "model", model,
-          "max_tokens", 1024,
+          // Generous headroom: a truncated response is not partially useful, it fails to parse
+          // outright, and unused tokens cost nothing.
+          "max_tokens", 4096,
           "system", system,
           "messages", new Object[] { Map.of("role", "user", "content", user) }));
       HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/v1/messages"))

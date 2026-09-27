@@ -48,7 +48,11 @@ public class SecurityConfig {
     http.csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(auth -> auth
             .requestMatchers(HttpMethod.POST, "/api/v1/session").permitAll()
-            .requestMatchers("/actuator/**").permitAll()
+            // Only the liveness probe is public. "/actuator/**" would also expose anything
+            // else that gets enabled later (env, configprops, heapdump) to anyone who can
+            // reach the port.
+            .requestMatchers("/actuator/health").permitAll()
+            .requestMatchers("/actuator/**").authenticated()
             .requestMatchers("/api/**").authenticated()
             // Everything else is the SPA shell (index.html, JS/CSS, and every client-side
             // route it forwards to) — only meaningful once the frontend is bundled into the

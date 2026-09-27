@@ -67,7 +67,7 @@ public class SchemaDiscoveryService {
 
   private Connection openExternalConnection(MerchantDbConfigEntity config) {
     try {
-      return DriverManager.getConnection(config.jdbcUrl(), config.getUsername(), crypto.decrypt(config.getPassword()));
+      return readOnly(DriverManager.getConnection(config.jdbcUrl(), config.getUsername(), crypto.decrypt(config.getPassword())));
     } catch (Exception e) {
       throw new IllegalStateException("Could not connect to the merchant database: " + e.getMessage(), e);
     }
@@ -75,9 +75,19 @@ public class SchemaDiscoveryService {
 
   private Connection openAppConnectionUnchecked() {
     try {
-      return appDataSource.getConnection();
+      return readOnly(appDataSource.getConnection());
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  /**
+   * The connector is only ever allowed to read merchant data. Postgres enforces this server-side
+   * for the whole transaction, so a bug or an injected statement that got this far still cannot
+   * write — the app's promise stops depending on the app being correct.
+   */
+  private Connection readOnly(Connection connection) throws Exception {
+    connection.setReadOnly(true);
+    return connection;
   }
 }
