@@ -1,0 +1,5 @@
+# The packaged exe has no console (double-clicked, no visible stdout/stderr), so this is the
+# only place a startup failure is recorded.
+logging:
+  file:
+    name: ${user.home}/AppData/Local/DisputeCopilot/app.log

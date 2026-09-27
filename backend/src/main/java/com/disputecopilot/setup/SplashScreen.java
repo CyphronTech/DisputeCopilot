@@ -60,7 +60,7 @@ public final class SplashScreen {
     window = w;
   }
 
-  static void close() {
+  public static void close() {
     if (window == null) return;
     SwingUtilities.invokeLater(() -> {
       window.dispose();
