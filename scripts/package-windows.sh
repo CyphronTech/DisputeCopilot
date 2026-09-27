@@ -8,7 +8,10 @@ set -euo pipefail
 UPGRADE_UUID="f699fa1c-d966-461c-8085-aba6b55fdf71"
 # Same rule for the Burn bundle that wraps the MSI; must differ from the MSI's code.
 BUNDLE_UPGRADE_UUID="2b6664c1-a6e7-4d1b-9077-3ce7a16218df"
-JAVA_HOME_BIN="D:\\java\\temurin-21\\bin"
+# Requires a JDK 21 (jpackage needs the JDK, not just a JRE). Set JAVA_HOME to point at it, e.g.
+# JAVA_HOME="D:\java\temurin-21" bash scripts/package-windows.sh -- this default is just a
+# placeholder and must be adjusted per machine.
+JAVA_HOME_BIN="${JAVA_HOME:-D:\\java\\temurin-21}\\bin"
 WIX_BIN="/c/Program Files (x86)/WiX Toolset v3.14/bin"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

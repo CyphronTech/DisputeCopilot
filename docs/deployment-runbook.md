@@ -1,5 +1,13 @@
 # Deployment and operations runbook
 
+> **Note:** this is the pre-implementation design doc. The shipped distribution
+> model differs from what's described below: DisputeCopilot ships as a single
+> Windows installer (`DisputeCopilot-Setup-*.exe`, built by
+> `scripts/package-windows.sh`) with an embedded PostgreSQL, not a docker-compose
+> release archive with install/start/stop shell scripts. `compose.yaml` is only
+> used for local Postgres when running from source. See the README's "Install"
+> and "Stack" sections for what actually ships.
+
 ## Distribution model
 
 DisputeCopilot is distributed as a release archive or source repository. It is installed once on a merchant-controlled machine and used through a browser. It is not a desktop `.exe`.

@@ -1,5 +1,12 @@
 # DisputeCopilot — Complete Project Context and Handoff
 
+> **Note:** this is a point-in-time handoff snapshot from the design phase
+> ("implementation not yet started" below is no longer true). It also
+> describes the pre-implementation pgvector/embedding retrieval design and a
+> docker-compose distribution model; the shipped implementation uses
+> keyword-overlap policy retrieval and ships as a single Windows installer.
+> See the README for current status and stack.
+
 - **Context captured:** 2026-09-23 (design review addendum added same day, see §28)
 - **Repository:** `D:\DisputeCopilot` (re-hosted from the original `/Users/oracle/Documents/Codex/2026-08-08/ge`; see §28 for why)
 - **Current phase:** Design review complete; implementation not yet started

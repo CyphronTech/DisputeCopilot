@@ -35,6 +35,7 @@ export function Setup() {
   const [lastTested, setLastTested] = useState<string | null>(null)
   const [testStatus, setTestStatus] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState(false)
 
   const [dbHost, setDbHost] = useState('')
   const [dbPort, setDbPort] = useState('5432')
@@ -45,6 +46,7 @@ export function Setup() {
   const [dbLastTested, setDbLastTested] = useState<string | null>(null)
   const [dbStatus, setDbStatus] = useState<string | null>(null)
   const [dbSaving, setDbSaving] = useState(false)
+  const [dbTesting, setDbTesting] = useState(false)
   const [schema, setSchema] = useState<Record<string, string[]> | null>(null)
   const [selectedColumns, setSelectedColumns] = useState<Record<string, Set<string>>>({})
   const [discovering, setDiscovering] = useState(false)
@@ -61,6 +63,7 @@ export function Setup() {
   const [shopifyLastTested, setShopifyLastTested] = useState<string | null>(null)
   const [shopifyStatus, setShopifyStatus] = useState<string | null>(null)
   const [shopifySaving, setShopifySaving] = useState(false)
+  const [shopifyTesting, setShopifyTesting] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -116,6 +119,8 @@ export function Setup() {
   }
 
   async function handleTestShopify() {
+    if (shopifyTesting) return
+    setShopifyTesting(true)
     setShopifyStatus('Testing…')
     try {
       const result = await testShopifyConfig()
@@ -123,6 +128,8 @@ export function Setup() {
       if (result.ok) setShopifyLastTested(new Date().toISOString())
     } catch (e) {
       setShopifyStatus(`Couldn't connect: ${messageOf(e)}`)
+    } finally {
+      setShopifyTesting(false)
     }
   }
 
@@ -142,6 +149,8 @@ export function Setup() {
   }
 
   async function handleTestConnector() {
+    if (dbTesting) return
+    setDbTesting(true)
     setDbStatus('Testing…')
     try {
       const result = await testConnectorConfig()
@@ -149,6 +158,8 @@ export function Setup() {
       if (result.ok) setDbLastTested(new Date().toISOString())
     } catch (e) {
       setDbStatus(`Couldn't connect: ${messageOf(e)}`)
+    } finally {
+      setDbTesting(false)
     }
   }
 
@@ -268,6 +279,8 @@ export function Setup() {
   }
 
   async function handleTest() {
+    if (testing) return
+    setTesting(true)
     setTestStatus('Testing…')
     try {
       const result = await testModelConfig()
@@ -275,6 +288,8 @@ export function Setup() {
       if (result.ok) setLastTested(new Date().toISOString())
     } catch (e) {
       setTestStatus(`Couldn't connect: ${messageOf(e)}`)
+    } finally {
+      setTesting(false)
     }
   }
 
@@ -346,7 +361,7 @@ export function Setup() {
                 {testStatus ?? (lastTested ? `Working — last checked ${formatDateTime(lastTested)}` : 'Not set up yet')}
               </div>
               <button className="btn btn-ghost btn-sm" onClick={handleSave} disabled={saving}>Save</button>
-              <button className="btn btn-ghost btn-sm" onClick={handleTest}>Test connection</button>
+              <button className="btn btn-ghost btn-sm" onClick={handleTest} disabled={testing}>Test connection</button>
             </div>
           </div>
 
@@ -401,7 +416,7 @@ export function Setup() {
                   {shopifyStatus ?? (shopifyLastTested ? `Working — last checked ${formatDateTime(shopifyLastTested)}` : shopifyConfigured ? 'Saved — click Test connection' : 'Not connected yet')}
                 </div>
                 <button className="btn btn-ghost btn-sm" onClick={handleSaveShopify} disabled={shopifySaving || !shopDomain}>Save</button>
-                <button className="btn btn-ghost btn-sm" onClick={handleTestShopify} disabled={!shopifyConfigured}>Test connection</button>
+                <button className="btn btn-ghost btn-sm" onClick={handleTestShopify} disabled={!shopifyConfigured || shopifyTesting}>Test connection</button>
               </div>
             </div>
           )}
@@ -445,7 +460,7 @@ export function Setup() {
                 {dbStatus ?? (dbLastTested ? `Working — last checked ${formatDateTime(dbLastTested)}` : dbConfigured ? 'Saved — click Test connection' : 'Not connected yet')}
               </div>
               <button className="btn btn-ghost btn-sm" onClick={handleSaveConnector} disabled={dbSaving || !dbHost || !dbDatabase || !dbUsername}>Save</button>
-              <button className="btn btn-ghost btn-sm" onClick={handleTestConnector} disabled={!dbConfigured}>Test connection</button>
+              <button className="btn btn-ghost btn-sm" onClick={handleTestConnector} disabled={!dbConfigured || dbTesting}>Test connection</button>
               <button className="btn btn-ghost btn-sm" onClick={handleDiscoverSchema} disabled={discovering}>
                 {discovering ? 'Loading…' : 'Load my tables'}
               </button>

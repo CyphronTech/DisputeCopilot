@@ -36,7 +36,7 @@ export function CaseList() {
   }, [])
 
   async function handleNewInvestigation() {
-    if (!newOrderId?.trim()) return
+    if (creating || !newOrderId?.trim()) return
     setCreating(true)
     setError(null)
     try {

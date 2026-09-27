@@ -50,12 +50,16 @@ export function DraftReport() {
   // The browser's print dialog is the PDF export: "Save as PDF" is built into every Windows
   // browser, and the print stylesheet strips the app chrome so only the report is saved.
   async function handleDownload() {
+    if (busy) return
     setError(null)
+    setBusy(true)
     try {
       setReport(await exportReport(caseId))
       window.print()
     } catch (e) {
       setError(messageOf(e))
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -93,13 +97,17 @@ export function DraftReport() {
           <p>{report.caseSummary}</p>
 
           <h2>Evidence from your records</h2>
-          <ul>
-            {report.evidenceIndex.map((e, i) => (
-              <li key={i}>
-                {reportEvidenceLine(e.text, e.sourceRef)} <span className="cite-ref" title={e.sourceRef}>{sourceLabel(e.sourceRef)}</span>
-              </li>
-            ))}
-          </ul>
+          {report.evidenceIndex.length === 0 ? (
+            <p style={{ color: 'var(--text-3)' }}>No evidence was recorded for this case.</p>
+          ) : (
+            <ul>
+              {report.evidenceIndex.map((e, i) => (
+                <li key={i}>
+                  {reportEvidenceLine(e.text, e.sourceRef)} <span className="cite-ref" title={e.sourceRef}>{sourceLabel(e.sourceRef)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <h2>What your policy says</h2>
           <p>{report.policyCitationsSummary}</p>
@@ -136,7 +144,7 @@ export function DraftReport() {
             {report.approved ? (
               <>
                 <div className="status"><span className="dot" />You approved this report.</div>
-                <button className="btn btn-primary" onClick={handleDownload}>
+                <button className="btn btn-primary" onClick={handleDownload} disabled={busy}>
                   <Icon name="upload" />
                   Download report (PDF)
                 </button>

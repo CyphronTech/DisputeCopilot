@@ -39,7 +39,10 @@ public class ConnectorSetupController {
     this.audit = audit;
   }
 
-  public record SaveConnectorRequest(@NotBlank String host, int port, @NotBlank String database, @NotBlank String username, String password, String driver) {}
+  public record SaveConnectorRequest(
+      @NotBlank String host,
+      @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(65535) int port,
+      @NotBlank String database, @NotBlank String username, String password, String driver) {}
   public record ConnectorView(boolean configured, String host, Integer port, String database, String username, String driver, Instant lastTestedAt) {}
   public record TestResult(boolean ok, String message) {}
   public record AllowlistRequest(Map<String, List<String>> allowlist) {}
@@ -94,14 +97,17 @@ public class ConnectorSetupController {
    * that isn't a real table/column the merchant database actually has is rejected outright.
    */
   @PutMapping("/allowlist")
-  public Map<String, List<String>> saveAllowlist(@RequestBody AllowlistRequest request) throws Exception {
+  public Map<String, List<String>> saveAllowlist(@RequestBody(required = false) AllowlistRequest request) throws Exception {
+    if (request == null || request.allowlist() == null) {
+      throw new IllegalArgumentException("No allowlist was submitted.");
+    }
     Map<String, List<String>> schema = schemaDiscovery.discover();
     for (var entry : request.allowlist().entrySet()) {
       List<String> realColumns = schema.get(entry.getKey());
       if (realColumns == null) {
         throw new IllegalArgumentException("No such table in the merchant database: " + entry.getKey());
       }
-      for (String column : entry.getValue()) {
+      for (String column : entry.getValue() == null ? List.<String>of() : entry.getValue()) {
         if (!realColumns.contains(column)) {
           throw new IllegalArgumentException("No such column in " + entry.getKey() + ": " + column);
         }
@@ -123,11 +129,15 @@ public class ConnectorSetupController {
   }
 
   @PutMapping("/role-mapping")
-  public Map<String, TableRoleMappingStore.RoleMapping> saveRoleMapping(@RequestBody Map<String, TableRoleMappingStore.RoleMapping> mapping) throws Exception {
+  public Map<String, TableRoleMappingStore.RoleMapping> saveRoleMapping(@RequestBody(required = false) Map<String, TableRoleMappingStore.RoleMapping> mapping) throws Exception {
+    if (mapping == null) {
+      throw new IllegalArgumentException("No role mapping was submitted.");
+    }
     Map<String, List<String>> schema = schemaDiscovery.discover();
     Map<String, TableRoleMappingStore.RoleMapping> validated = new java.util.LinkedHashMap<>();
     for (var entry : mapping.entrySet()) {
       TableRoleMappingStore.RoleMapping m = entry.getValue();
+      if (m == null || m.tableName() == null || m.orderIdColumn() == null) continue;
       List<String> columns = schema.get(m.tableName());
       if (columns == null || !columns.contains(m.orderIdColumn())) continue;
       validated.put(entry.getKey(), new TableRoleMappingStore.RoleMapping(m.tableName(), m.orderIdColumn(),

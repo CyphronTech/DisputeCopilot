@@ -25,6 +25,7 @@ export function PolicyLibrary() {
   const [filter, setFilter] = useState<(typeof TYPE_FILTERS)[number]>(TYPE_FILTERS[0])
   const [uploading, setUploading] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const visible = policies.filter((doc) => filter === 'All types' || categoryOf(doc.title) === filter)
@@ -46,6 +47,7 @@ export function PolicyLibrary() {
   // One request per file, in turn: a bad file (wrong type, no readable text) is reported by name
   // and the rest still go through, instead of one failure sinking the whole batch.
   async function handleUpload(fileList: FileList | null) {
+    if (uploading !== null) return
     const files = Array.from(fileList ?? [])
     if (files.length === 0) return
     setUploadError(null)
@@ -67,13 +69,17 @@ export function PolicyLibrary() {
   }
 
   async function handleDelete(doc: PolicyDocument) {
+    if (deletingId !== null) return
     if (!window.confirm(`Remove "${doc.title}"? The AI will stop quoting it in new cases.`)) return
     setUploadError(null)
+    setDeletingId(doc.documentId)
     try {
       await deletePolicy(doc.documentId)
       await refresh()
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -166,12 +172,13 @@ export function PolicyLibrary() {
                     <button
                       className="btn btn-ghost"
                       title={`Remove ${doc.title}`}
+                      disabled={deletingId === doc.documentId}
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDelete(doc)
                       }}
                     >
-                      Remove
+                      {deletingId === doc.documentId ? 'Removing…' : 'Remove'}
                     </button>
                   </td>
                 </tr>

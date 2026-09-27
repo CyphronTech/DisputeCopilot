@@ -63,7 +63,8 @@ public class ShopifySetupController {
     ShopifyConfigEntity config = repository.findById(Boolean.TRUE).orElse(null);
     if (config == null) return new TestResult(false, "Save a shop domain and access token first.");
     try {
-      HttpRequest request = HttpRequest.newBuilder(URI.create("https://" + config.getShopDomain() + "/admin/api/2024-01/shop.json"))
+      HttpRequest request = HttpRequest.newBuilder(URI.create("https://" + config.getShopDomain()
+              + "/admin/api/" + ShopifyMerchantConnector.API_VERSION + "/shop.json"))
           .header("X-Shopify-Access-Token", crypto.decrypt(config.getAccessToken()))
           .timeout(Duration.ofSeconds(15))
           .GET().build();

@@ -4,6 +4,7 @@ import com.disputecopilot.audit.AuditRecorder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -89,7 +90,7 @@ public class SessionController {
   }
 
   @PostMapping
-  public ResponseEntity<SessionView> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+  public ResponseEntity<SessionView> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
     try {
       Authentication authentication = authenticationManager.authenticate(
           new UsernamePasswordAuthenticationToken(request.email(), request.password()));

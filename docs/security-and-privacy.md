@@ -1,5 +1,13 @@
 # Security and privacy design
 
+> **Note:** this is the pre-implementation design doc. It assumes the original
+> docker-compose deployment (e.g. "PostgreSQL is reachable only on the Compose
+> network" below); the shipped product instead runs as a single Windows
+> installer with an embedded PostgreSQL — see the README's "Install" and
+> "Stack" sections. The core security controls described here (read-only
+> connector, allowlisted schema access, encrypted secrets) reflect the actual
+> implementation.
+
 ## Security objective
 
 Keep merchant data under merchant control, minimize the information sent to the selected model provider, prevent the LLM from gaining authority over databases or financial actions, and preserve an auditable human decision.

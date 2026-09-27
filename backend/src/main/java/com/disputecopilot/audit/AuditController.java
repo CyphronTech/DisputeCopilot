@@ -33,6 +33,10 @@ public class AuditController {
   }
 
   private String initials(String name) {
+    // Defensive: every current caller of AuditRecorder.record passes a non-blank actor name, but
+    // actor_name is free-form text, not something this controller controls — a blank one must
+    // render as "no initials", not break the whole audit log with an exception.
+    if (name == null || name.isBlank()) return "";
     String[] parts = name.trim().split("\\s+");
     String first = parts[0].substring(0, 1);
     String last = parts.length > 1 ? parts[parts.length - 1].substring(0, 1) : "";

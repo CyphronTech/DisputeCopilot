@@ -1,5 +1,12 @@
 # RAG ingestion, retrieval, and evaluation
 
+> **Note:** this is the pre-implementation design doc. The pgvector/embedding
+> pipeline described below (embedding cache, embedding API, pgvector write)
+> was not built — the shipped implementation retrieves policy sections with
+> plain keyword-overlap scoring and no vector extension. See
+> [architecture.md](architecture.md) and the README's "Stack" section for
+> what actually runs.
+
 ## Purpose
 
 RAG supplies the Evidence Reviewer with the merchant policy that applied when the order was placed. It is not a general chatbot and does not give every agent unrestricted access to all uploaded text.

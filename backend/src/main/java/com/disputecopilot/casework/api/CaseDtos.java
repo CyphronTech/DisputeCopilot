@@ -7,7 +7,9 @@ import java.util.List;
 public final class CaseDtos {
   private CaseDtos() {}
 
-  public record CreateCaseRequest(@NotBlank String orderId) {}
+  // 64 matches case_record.order_id's column width (see V1 migration) — a longer value would
+  // fail the insert with a raw DB error instead of a message the merchant can act on.
+  public record CreateCaseRequest(@NotBlank @jakarta.validation.constraints.Size(max = 64) String orderId) {}
 
   public record ManualResolutionRequest(@NotBlank String recommendation, String note) {}
 

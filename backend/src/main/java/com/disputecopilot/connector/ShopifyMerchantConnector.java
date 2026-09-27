@@ -32,7 +32,7 @@ public class ShopifyMerchantConnector {
    * oldest supported one instead, so response shapes can change underneath us. Bump this roughly
    * every six months.
    */
-  private static final String API_VERSION = "2026-04";
+  static final String API_VERSION = "2026-04";
 
   private static final List<String> TABLES = List.of("orders", "fulfillment", "refunds", "communications");
   private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
