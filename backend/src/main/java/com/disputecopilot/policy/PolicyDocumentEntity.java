@@ -41,4 +41,10 @@ public class PolicyDocumentEntity {
   public LocalDate getEffectiveFrom() { return effectiveFrom; }
   public LocalDate getEffectiveTo() { return effectiveTo; }
   public String getContent() { return content; }
+
+  /** Retired documents stop being cited but stay on record, since past cases still quote them. */
+  public void retire() {
+    this.status = "RETIRED";
+    this.effectiveTo = LocalDate.now();
+  }
 }

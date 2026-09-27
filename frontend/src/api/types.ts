@@ -31,7 +31,7 @@ export interface CaseMetrics {
   openCases: number
   awaitingApproval: number
   manualReview: number
-  exportedWithoutEditsPct: number
+  reportsDownloaded: number
 }
 
 export interface EvidenceItem {

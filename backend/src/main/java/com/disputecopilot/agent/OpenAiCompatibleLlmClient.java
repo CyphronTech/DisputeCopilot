@@ -6,7 +6,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.Builder;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Map;
 
@@ -42,14 +41,12 @@ class OpenAiCompatibleLlmClient implements LlmClient {
       if (apiKey != null && !apiKey.isBlank()) {
         builder.header("authorization", "Bearer " + apiKey);
       }
-      HttpResponse<String> response = HTTP.send(builder.build(), HttpResponse.BodyHandlers.ofString());
-      if (response.statusCode() >= 300) {
-        throw new IllegalStateException("Model API error " + response.statusCode() + ": " + response.body());
-      }
-      JsonNode root = JSON.readTree(response.body());
+      JsonNode root = JSON.readTree(LlmClient.send(HTTP, builder.build()));
       return root.path("choices").path(0).path("message").path("content").asText();
+    } catch (IllegalStateException e) {
+      throw e;
     } catch (Exception e) {
-      throw new IllegalStateException("Model call failed: " + e.getMessage(), e);
+      throw new IllegalStateException("The AI request failed: " + e.getMessage(), e);
     }
   }
 }

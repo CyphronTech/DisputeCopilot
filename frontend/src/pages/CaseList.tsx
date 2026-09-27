@@ -81,8 +81,8 @@ export function CaseList() {
             <button
               className="btn btn-primary"
               onClick={() => setNewOrderId('')}
-              disabled={aiReady === false}
-              title={aiReady === false ? 'Set up an AI provider in Setup first' : undefined}
+              disabled={aiReady === false || storeReady === false}
+              title={aiReady === false ? 'Set up an AI provider in Setup first' : storeReady === false ? 'Connect your store in Setup first' : undefined}
             >
               <Icon name="plus" />
               New investigation
@@ -124,7 +124,7 @@ export function CaseList() {
         <div className="card notice info" role="status">
           <Icon name="db" />
           <div>
-            Your store isn't connected yet, so investigations use built-in <strong>sample data</strong>, not your real orders.{' '}
+            <strong>One step before your first investigation:</strong> connect your store so the app can look up your orders.{' '}
             <Link to="/setup">Connect your store</Link>
           </div>
         </div>
@@ -146,8 +146,8 @@ export function CaseList() {
             <div className="n">{metrics.manualReview}</div>
           </div>
           <div className="metric">
-            <div className="l"><Icon name="check" />Reports used without changes</div>
-            <div className="n">{metrics.exportedWithoutEditsPct}<small>%</small></div>
+            <div className="l"><Icon name="check" />Reports downloaded</div>
+            <div className="n">{metrics.reportsDownloaded}</div>
           </div>
         </div>
       )}

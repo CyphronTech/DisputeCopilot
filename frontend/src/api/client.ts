@@ -84,7 +84,7 @@ export async function getCases(): Promise<CaseSummary[]> {
 
 export async function getCaseMetrics(): Promise<CaseMetrics> {
   const m = await getJson<CaseMetrics>('/api/v1/cases/metrics')
-  return { openCases: m.openCases, awaitingApproval: m.awaitingApproval, manualReview: m.manualReview, exportedWithoutEditsPct: m.exportedWithoutEditsPct }
+  return { openCases: m.openCases, awaitingApproval: m.awaitingApproval, manualReview: m.manualReview, reportsDownloaded: m.reportsDownloaded }
 }
 
 export async function createCase(orderId: string): Promise<CaseDetail> {
@@ -105,6 +105,10 @@ export async function getDraftReport(caseId: string): Promise<DraftReport> {
 
 export async function approveReport(caseId: string): Promise<DraftReport> {
   return sendJson<DraftReport>(`/api/v1/cases/${caseId}/report/approve`, 'POST')
+}
+
+export async function exportReport(caseId: string): Promise<DraftReport> {
+  return sendJson<DraftReport>(`/api/v1/cases/${caseId}/report/export`, 'POST')
 }
 
 export async function requestReportChanges(caseId: string, note: string): Promise<DraftReport> {
@@ -128,7 +132,8 @@ export async function deletePolicy(documentId: string): Promise<void> {
 
 export async function getAuditEvents(): Promise<AuditEvent[]> {
   const events = await getJson<AuditEvent[]>('/api/v1/audit')
-  return events.map((e) => ({ ...e, timestamp: new Date(e.timestamp).toLocaleString() }))
+  // Raw ISO: pages format it with formatDateTime; pre-formatting here made them re-parse a locale string.
+  return events
 }
 
 export async function getModelConfig() {

@@ -33,6 +33,9 @@ import org.springframework.stereotype.Component;
 @EnableConfigurationProperties(ConnectorAllowlistProperties.class)
 public class PostgresMerchantConnector {
 
+  /** Every matching row is evidence (several refunds, several messages); the cap only guards against a mis-mapped column matching thousands. */
+  private static final int MAX_ROWS_PER_TABLE = 50;
+
   private static final List<String> ROLES = List.of("orders", "payments", "fulfillment", "refunds", "returns", "communications");
 
   /**
@@ -83,15 +86,18 @@ public class PostgresMerchantConnector {
     // Cast to text: the order-id column's real type varies by merchant schema (int, bigint,
     // uuid, varchar, ...) but the order ID always arrives here as a String — casting the
     // column instead of guessing its type works regardless of what it actually is.
-    String sql = "select " + columnList + " from " + table + " where " + orderIdColumn + "::text = ? limit 1";
+    String sql = "select " + columnList + " from " + table + " where " + orderIdColumn + "::text = ? limit " + MAX_ROWS_PER_TABLE;
     try (Connection connection = schemaDiscovery.openConnection();
         PreparedStatement statement = connection.prepareStatement(sql)) {
       statement.setString(1, orderId);
       try (ResultSet resultSet = statement.executeQuery()) {
         return toRows(resultSet);
       }
+    } catch (IllegalStateException alreadyExplained) {
+      throw alreadyExplained;
     } catch (Exception e) {
-      throw new IllegalStateException("Connector read failed for table " + table + ": " + e.getMessage(), e);
+      throw new IllegalStateException("Couldn't read your store's " + role + " records. If your database changed, re-check "
+          + "the tables and columns in Setup. (Details: " + e.getMessage() + ")", e);
     }
   }
 

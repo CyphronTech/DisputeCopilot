@@ -51,6 +51,8 @@ public class CaseController {
     List<CaseSummary> all = caseIntakeService.list();
     long awaiting = all.stream().filter(c -> c.state().equals(CaseState.AWAITING_HUMAN_APPROVAL.name())).count();
     long manualReview = all.stream().filter(c -> c.state().equals(CaseState.MANUAL_REVIEW_REQUIRED.name())).count();
-    return new CaseMetrics(all.size(), awaiting, manualReview, 0.0);
+    long downloaded = all.stream().filter(c -> c.state().equals(CaseState.EXPORTED.name())).count();
+    long failed = all.stream().filter(c -> c.state().equals(CaseState.FAILED.name())).count();
+    return new CaseMetrics(all.size() - downloaded - failed, awaiting, manualReview, downloaded);
   }
 }

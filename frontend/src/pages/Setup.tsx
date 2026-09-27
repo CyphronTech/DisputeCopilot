@@ -10,7 +10,7 @@ import { ErrorBanner, messageOf } from '../components/ErrorBanner'
 import { formatDateTime } from '../lib/format'
 import type { ModelProvider } from '../api/types'
 
-const TABS = ['Integrations', 'Users & roles', 'Deployment']
+const TABS = ['Integrations', 'Password']
 
 const ROLES = ['orders', 'payments', 'fulfillment', 'refunds', 'returns', 'communications'] as const
 const ROLE_LABEL: Record<(typeof ROLES)[number], string> = {
@@ -597,29 +597,11 @@ export function Setup() {
           </div>
           )}
 
-          <div className="card section">
-            <div className="section-head">
-              <div className="section-icon">
-                <Icon name="clock" />
-              </div>
-              <h2>Time zone</h2>
-            </div>
-            <p className="desc">Can't be changed yet. When deciding which version of a policy applied on a given day, dates are read in India Standard Time (IST).</p>
-          </div>
         </>
       )}
 
-      {tab === 'Users & roles' && (
+      {tab === 'Password' && (
         <ChangePasswordSection />
-      )}
-
-      {tab === 'Deployment' && (
-        <div className="card section">
-          <p className="desc" style={{ marginTop: 0 }}>
-            Not built yet — this instance runs from source (Docker + Java + Node) on whatever
-            machine you start it on. There's no packaged installer or hosted option yet.
-          </p>
-        </div>
       )}
     </>
   )
@@ -629,12 +611,13 @@ function ChangePasswordSection() {
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
-  const [status, setStatus] = useState<string | null>(null)
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null)
   const [saving, setSaving] = useState(false)
 
-  async function handleChange() {
-    if (next.length < 8) return setStatus('New password must be at least 8 characters.')
-    if (next !== confirm) return setStatus("The new passwords don't match.")
+  async function handleChange(e: React.FormEvent) {
+    e.preventDefault()
+    if (next.length < 8) return setStatus({ ok: false, text: 'New password must be at least 8 characters.' })
+    if (next !== confirm) return setStatus({ ok: false, text: "The new passwords don't match." })
     setSaving(true)
     setStatus(null)
     try {
@@ -642,46 +625,46 @@ function ChangePasswordSection() {
       setCurrent('')
       setNext('')
       setConfirm('')
-      setStatus('Password changed')
-    } catch (e) {
-      setStatus(e instanceof Error ? e.message : String(e))
+      setStatus({ ok: true, text: 'Password changed.' })
+    } catch (err) {
+      setStatus({ ok: false, text: err instanceof Error ? err.message : String(err) })
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <div className="card section">
+    <form className="card section" onSubmit={handleChange}>
       <div className="section-head">
         <div className="section-icon">
           <Icon name="lock" />
         </div>
         <h2>Change password</h2>
       </div>
-      <p className="desc">There's one login for this app. Per-person logins and permission levels aren't built yet.</p>
+      <p className="desc">This is the password you use to sign in to DisputeCopilot on this computer.</p>
       <div className="row">
-        <label>Current password</label>
-        <input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+        <label htmlFor="pw-current">Current password</label>
+        <input id="pw-current" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />
       </div>
       <div className="row">
-        <label>New password</label>
-        <input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="at least 8 characters" />
+        <label htmlFor="pw-new">New password</label>
+        <input id="pw-new" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="at least 8 characters" />
       </div>
       <div className="row">
-        <label>Confirm new password</label>
-        <input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <label htmlFor="pw-confirm">Confirm new password</label>
+        <input id="pw-confirm" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </div>
       <div className="row-actions">
         {status && (
-          <div className="status">
-            <span className="dot" />
-            {status}
+          <div className="status" role={status.ok ? 'status' : 'alert'} style={status.ok ? undefined : { color: 'var(--error)' }}>
+            <span className="dot" style={status.ok ? undefined : { background: 'var(--error)' }} />
+            {status.text}
           </div>
         )}
-        <button className="btn btn-ghost btn-sm" onClick={handleChange} disabled={saving || !current || !next}>
+        <button type="submit" className="btn btn-ghost btn-sm" disabled={saving || !current || !next}>
           {saving ? 'Saving…' : 'Change password'}
         </button>
       </div>
-    </div>
+    </form>
   )
 }

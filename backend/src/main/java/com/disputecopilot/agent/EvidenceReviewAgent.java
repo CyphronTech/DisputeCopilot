@@ -86,12 +86,25 @@ public class EvidenceReviewAgent {
       prompt.append("\nRelevant policy excerpts:\n");
       for (PolicyRetrievalService.Match match : matches) {
         prompt.append("=== ").append(match.document().getTitle()).append(" ===\n")
-            .append(match.document().getContent()).append("\n\n");
+            .append(truncate(match.document().getContent())).append("\n\n");
       }
     }
 
     String raw = clientFactory.forConfig(config).chat(SYSTEM_PROMPT, prompt.toString());
     return parse(raw, matches);
+  }
+
+  /**
+   * ponytail: whole-document excerpts capped by length, not chunked retrieval. A long policy PDF
+   * sent whole makes every case slow and expensive, or overflows the context and fails. Citations
+   * are still verified against the full stored text. Upgrade to passage retrieval if merchants
+   * keep policies whose relevant clauses sit past the cap.
+   */
+  private static final int MAX_POLICY_CHARS = 24_000;
+
+  private static String truncate(String content) {
+    return content.length() <= MAX_POLICY_CHARS ? content
+        : content.substring(0, MAX_POLICY_CHARS) + "\n[... rest of this document omitted for length ...]";
   }
 
   private Review parse(String raw, List<PolicyRetrievalService.Match> matches) {
@@ -108,7 +121,7 @@ public class EvidenceReviewAgent {
       List<Citation> citations = verifiedCitations(node.path("citations"), matches);
       return new Review(recommendation, confidence, caveat, summary, citations);
     } catch (Exception e) {
-      throw new IllegalStateException("Could not parse model response as the expected JSON: " + raw, e);
+      throw new IllegalStateException("The AI returned an answer in an unexpected format. Try again, or pick a more capable model in Setup.", e);
     }
   }
 

@@ -30,6 +30,11 @@ public class ReportController {
     return reportService.approve(caseId);
   }
 
+  @PostMapping("/export")
+  public DraftReport export(@PathVariable String caseId) {
+    return reportService.markExported(caseId);
+  }
+
   @PostMapping("/request-changes")
   public DraftReport requestChanges(@PathVariable String caseId, @RequestBody(required = false) Map<String, String> body) {
     return reportService.requestChanges(caseId, body == null ? null : body.get("note"));

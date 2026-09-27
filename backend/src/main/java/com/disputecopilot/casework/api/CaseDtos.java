@@ -24,5 +24,5 @@ public final class CaseDtos {
       List<EvidenceItem> evidence, List<PolicyCitation> citations,
       String recommendation, Double confidence, String caveat, String summary) {}
 
-  public record CaseMetrics(long openCases, long awaitingApproval, long manualReview, double exportedWithoutEditsPct) {}
+  public record CaseMetrics(long openCases, long awaitingApproval, long manualReview, long reportsDownloaded) {}
 }

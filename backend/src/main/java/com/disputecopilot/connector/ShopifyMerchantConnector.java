@@ -21,11 +21,18 @@ import tools.jackson.databind.ObjectMapper;
  * connector produces (see application.yml's allowlist column names), so the evidence-review
  * agent and everything downstream works unchanged regardless of which connector is active.
  *
- * ponytail: re-fetches the order from Shopify once per table read (4 calls per case) rather
+ * ponytail: re-fetches the order from Shopify once per table read (5 calls per case) rather
  * than caching across the read loop — fine at this volume, revisit if Shopify rate limits bite.
  */
 @Component
 public class ShopifyMerchantConnector {
+
+  /**
+   * Shopify retires each API version about 12 months after release and then silently serves the
+   * oldest supported one instead, so response shapes can change underneath us. Bump this roughly
+   * every six months.
+   */
+  private static final String API_VERSION = "2026-04";
 
   private static final List<String> TABLES = List.of("orders", "fulfillment", "refunds", "communications");
   private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -65,7 +72,7 @@ public class ShopifyMerchantConnector {
     String name = orderName.startsWith("#") ? orderName : "#" + orderName;
     try {
       HttpRequest request = HttpRequest.newBuilder(URI.create(
-              "https://" + config.getShopDomain() + "/admin/api/2024-01/orders.json?status=any&name=" + URLEncoder.encode(name, StandardCharsets.UTF_8)))
+              "https://" + config.getShopDomain() + "/admin/api/" + API_VERSION + "/orders.json?status=any&name=" + URLEncoder.encode(name, StandardCharsets.UTF_8)))
           .header("X-Shopify-Access-Token", crypto.decrypt(config.getAccessToken()))
           .timeout(Duration.ofSeconds(20))
           .GET().build();
@@ -111,10 +118,14 @@ public class ShopifyMerchantConnector {
   private List<Map<String, Object>> refundRow(JsonNode order) {
     JsonNode refunds = order.path("refunds");
     if (!refunds.isArray() || refunds.isEmpty()) return List.of();
-    JsonNode refund = refunds.get(0);
+    // All refunds, not just the first: a partial refund followed by another must add up, or the
+    // review under-states what the customer already got back.
     double total = 0;
-    for (JsonNode transaction : refund.path("transactions")) {
-      total += transaction.path("amount").asDouble(0);
+    JsonNode refund = refunds.get(refunds.size() - 1);
+    for (JsonNode each : refunds) {
+      for (JsonNode transaction : each.path("transactions")) {
+        total += transaction.path("amount").asDouble(0);
+      }
     }
     Map<String, Object> row = new LinkedHashMap<>();
     row.put("order_id", order.path("name").asText());

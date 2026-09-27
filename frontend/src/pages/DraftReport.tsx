@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { approveReport, getDraftReport, requestReportChanges } from '../api/client'
+import { approveReport, exportReport, getDraftReport, requestReportChanges } from '../api/client'
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
 import { recommendationLabel } from '../components/Tag'
@@ -47,6 +47,18 @@ export function DraftReport() {
     }
   }
 
+  // The browser's print dialog is the PDF export: "Save as PDF" is built into every Windows
+  // browser, and the print stylesheet strips the app chrome so only the report is saved.
+  async function handleDownload() {
+    setError(null)
+    try {
+      setReport(await exportReport(caseId))
+      window.print()
+    } catch (e) {
+      setError(messageOf(e))
+    }
+  }
+
   if (!report) {
     return (
       <>
@@ -68,7 +80,7 @@ export function DraftReport() {
       </Link>
       <div className="page-head">
         <div>
-          <h1 className="page-title">Draft report</h1>
+          <h1 className="page-title">Dispute evidence report — order {report.orderId}</h1>
           <p className="page-sub">Draft {report.revision} · {report.approved ? 'Approved' : 'Waiting for your approval'}</p>
         </div>
       </div>
@@ -122,7 +134,14 @@ export function DraftReport() {
           </div>
           <div className="card actions">
             {report.approved ? (
-              <div className="status"><span className="dot" />You approved this report.</div>
+              <>
+                <div className="status"><span className="dot" />You approved this report.</div>
+                <button className="btn btn-primary" onClick={handleDownload}>
+                  <Icon name="upload" />
+                  Download report (PDF)
+                </button>
+                <p className="hint">In the print window, choose <strong>Save as PDF</strong>, then send that file to your payment processor.</p>
+              </>
             ) : (
               <button className="btn btn-primary" onClick={handleApprove} disabled={busy}>
                 <Icon name="check" />

@@ -51,15 +51,31 @@ public class ReportService {
   @Transactional
   public DraftReport approve(String caseId) {
     CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(() -> new NoSuchElementException("Case not found"));
-    if (entity.getRecommendation() == null) {
-      // Nothing was ever decided for this case (the AI review failed, or no order was found),
-      // so there is no recommendation to approve — approving would export a report whose
-      // headline decision is blank.
-      throw new IllegalArgumentException("This case has no recommendation yet — resolve it manually before approving.");
+    // Only a settled decision can be approved: not a blank one (review failed), not one the safety
+    // net downgraded to MANUAL_REVIEW_REQUIRED, and not one just sent back for changes (that keeps
+    // its old recommendation but returns the case to manual review).
+    boolean decided = "CONTEST".equals(entity.getRecommendation()) || "ACCEPT".equals(entity.getRecommendation());
+    if (entity.getState() != CaseState.AWAITING_HUMAN_APPROVAL || !decided) {
+      throw new IllegalArgumentException("This case isn't ready to approve — decide it yourself on the case page first (Contest or Accept).");
     }
     entity.setState(CaseState.APPROVED);
     cases.save(entity);
     audit.record("Report approved", "recommendation " + entity.getRecommendation(), entity.getOrderId(), "Admin", false, "check", "success");
+    return build(entity, evidenceItems.findByCaseId(entity.getId()));
+  }
+
+  /** Records that the approved report was downloaded/printed for submission to the payment processor. */
+  @Transactional
+  public DraftReport markExported(String caseId) {
+    CaseEntity entity = cases.findById(UUID.fromString(caseId)).orElseThrow(() -> new NoSuchElementException("Case not found"));
+    if (entity.getState() != CaseState.APPROVED && entity.getState() != CaseState.EXPORTED) {
+      throw new IllegalArgumentException("Approve the report before downloading it.");
+    }
+    if (entity.getState() == CaseState.APPROVED) {
+      entity.setState(CaseState.EXPORTED);
+      cases.save(entity);
+      audit.record("Report exported", "downloaded for submission", entity.getOrderId(), "Admin", false, "check", "success");
+    }
     return build(entity, evidenceItems.findByCaseId(entity.getId()));
   }
 

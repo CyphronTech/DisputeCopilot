@@ -5,7 +5,6 @@ import tools.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Map;
 
@@ -41,14 +40,12 @@ class AnthropicLlmClient implements LlmClient {
           .timeout(Duration.ofSeconds(120))
           .POST(HttpRequest.BodyPublishers.ofString(body))
           .build();
-      HttpResponse<String> response = HTTP.send(request, HttpResponse.BodyHandlers.ofString());
-      if (response.statusCode() >= 300) {
-        throw new IllegalStateException("Anthropic API error " + response.statusCode() + ": " + response.body());
-      }
-      JsonNode root = JSON.readTree(response.body());
+      JsonNode root = JSON.readTree(LlmClient.send(HTTP, request));
       return root.path("content").path(0).path("text").asText();
+    } catch (IllegalStateException e) {
+      throw e;
     } catch (Exception e) {
-      throw new IllegalStateException("Anthropic call failed: " + e.getMessage(), e);
+      throw new IllegalStateException("The AI request failed: " + e.getMessage(), e);
     }
   }
 }

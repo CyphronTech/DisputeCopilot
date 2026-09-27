@@ -9,7 +9,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.sql.DataSource;
 import org.springframework.stereotype.Service;
 
 /**
@@ -29,12 +28,10 @@ public class SchemaDiscoveryService {
 
   private final MerchantDbConfigJpaRepository configRepository;
   private final CryptoUtil crypto;
-  private final DataSource appDataSource;
 
-  public SchemaDiscoveryService(MerchantDbConfigJpaRepository configRepository, CryptoUtil crypto, DataSource appDataSource) {
+  public SchemaDiscoveryService(MerchantDbConfigJpaRepository configRepository, CryptoUtil crypto) {
     this.configRepository = configRepository;
     this.crypto = crypto;
-    this.appDataSource = appDataSource;
   }
 
   public Map<String, List<String>> discover() throws Exception {
@@ -62,22 +59,16 @@ public class SchemaDiscoveryService {
   public Connection openConnection() throws Exception {
     return configRepository.findById(Boolean.TRUE)
         .map(this::openExternalConnection)
-        .orElseGet(this::openAppConnectionUnchecked);
+        // Falling back to the app's own (empty) tables made every lookup report "order not found",
+        // sending the merchant off to re-check a correct order ID. The real problem is setup.
+        .orElseThrow(() -> new IllegalStateException("Your store isn't connected yet. Connect it in Setup, then try again."));
   }
 
   private Connection openExternalConnection(MerchantDbConfigEntity config) {
     try {
       return readOnly(DriverManager.getConnection(config.jdbcUrl(), config.getUsername(), crypto.decrypt(config.getPassword())));
     } catch (Exception e) {
-      throw new IllegalStateException("Could not connect to the merchant database: " + e.getMessage(), e);
-    }
-  }
-
-  private Connection openAppConnectionUnchecked() {
-    try {
-      return readOnly(appDataSource.getConnection());
-    } catch (Exception e) {
-      throw new IllegalStateException(e);
+      throw new IllegalStateException("Couldn't connect to your store's database. Check the address, username and password in Setup. (Details: " + e.getMessage() + ")", e);
     }
   }
 

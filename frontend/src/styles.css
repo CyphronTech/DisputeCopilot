@@ -312,3 +312,15 @@ tbody tr:hover td { background: var(--surface-2); }
 .empty p { font-size: 12.5px; color: var(--text-3); margin: 0 auto; max-width: 440px; line-height: 1.55; }
 tbody tr.empty-row:hover td { background: none; }
 .step-num { width: 32px; height: 32px; border-radius: 8px; background: var(--accent-solid); color: #fff; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+
+/* The report download is the browser's "Save as PDF" — print only the report itself. */
+@media print {
+  .sidebar, .topbar, .back-link, .actions, .no-print { display: none !important; }
+  .shell { display: block !important; }
+  .report-grid { grid-template-columns: 1fr; }
+  .card { box-shadow: none; break-inside: avoid; }
+  body { background: #fff; }
+}
+
+/* Wide tables scroll inside their own card on narrower laptops, instead of pushing the whole page sideways. */
+.card:has(> table) { overflow-x: auto; }

@@ -37,7 +37,7 @@ public class PolicyController {
 
   @GetMapping
   public List<PolicyDocumentView> list() {
-    return repository.findAll().stream().map(this::toView).toList();
+    return repository.findAll().stream().filter(d -> !"RETIRED".equals(d.getStatus())).map(this::toView).toList();
   }
 
   @PostMapping(consumes = "multipart/form-data")
@@ -62,7 +62,10 @@ public class PolicyController {
   public void delete(@PathVariable String documentId) {
     PolicyDocumentEntity entity = repository.findById(UUID.fromString(documentId))
         .orElseThrow(() -> new NoSuchElementException("No such policy document"));
-    repository.delete(entity);
+    // Soft delete: a hard delete fails once any case has cited this document (case_citation
+    // references it), which left outdated policies impossible to remove.
+    entity.retire();
+    repository.save(entity);
     audit.record("Policy document removed", entity.getTitle(), null, "Admin", false, "file", "warn");
   }
 

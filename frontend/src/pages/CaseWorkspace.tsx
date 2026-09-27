@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { getCase, resolveManually } from '../api/client'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { createCase, getCase, resolveManually } from '../api/client'
 import { Confidence } from '../components/Confidence'
 import { Icon } from '../components/Icon'
 import { StateTag, Tag, recommendationLabel } from '../components/Tag'
@@ -10,6 +10,7 @@ import { evidenceDescription, evidenceTitle, formatDateTime, sourceLabel } from 
 
 export function CaseWorkspace() {
   const { caseId = '' } = useParams()
+  const navigate = useNavigate()
   const [detail, setDetail] = useState<CaseDetail | null>(null)
   const [note, setNote] = useState('')
   const [resolving, setResolving] = useState(false)
@@ -28,6 +29,21 @@ export function CaseWorkspace() {
     setError(null)
     try {
       setDetail(await resolveManually(caseId, recommendation, note))
+    } catch (e) {
+      setError(messageOf(e))
+    } finally {
+      setResolving(false)
+    }
+  }
+
+  // A failed case is closed, so starting the same order again opens a fresh investigation.
+  async function handleRetry() {
+    if (!detail) return
+    setResolving(true)
+    setError(null)
+    try {
+      const fresh = await createCase(detail.orderId)
+      navigate(`/cases/${fresh.caseId}`)
     } catch (e) {
       setError(messageOf(e))
     } finally {
@@ -157,6 +173,16 @@ export function CaseWorkspace() {
               </div>
             )}
           </div>
+
+          {detail.state === 'FAILED' && (
+            <div className="card panel" style={{ marginTop: 12 }}>
+              <h2 style={{ marginTop: 0 }}>This investigation didn't finish</h2>
+              <p style={{ color: 'var(--text-3)', fontSize: 12.5, marginTop: 4 }}>
+                The reason is shown above. Once you've fixed it (usually in <Link to="/setup">Setup</Link>), try again.
+              </p>
+              <button className="btn btn-primary" disabled={resolving} onClick={handleRetry}>Try again</button>
+            </div>
+          )}
 
           {detail.state === 'MANUAL_REVIEW_REQUIRED' && (
             <div className="card panel" style={{ marginTop: 12 }}>
