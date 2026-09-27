@@ -4,53 +4,56 @@ import { Icon } from '../components/Icon'
 import { ErrorBanner, messageOf } from '../components/ErrorBanner'
 import { downloadCsv } from '../lib/csv'
 import type { AuditEvent } from '../api/types'
+import { formatDateTime } from '../lib/format'
 
-const TABS = ['All events', 'Workflow', 'Access', 'Configuration', 'Approval'] as const
+const TABS = ['Everything', 'Cases', 'Sign-ins', 'Settings changes', 'Your decisions'] as const
 
 function categoryOf(title: string): (typeof TABS)[number] {
-  if (title.startsWith('Login')) return 'Access'
-  if (title.includes('configuration')) return 'Configuration'
-  if (title.includes('approved') || title.includes('sent back for changes') || title.includes('resolved manually')) return 'Approval'
-  return 'Workflow'
+  if (title.startsWith('Login')) return 'Sign-ins'
+  if (title.includes('configuration')) return 'Settings changes'
+  if (title.includes('approved') || title.includes('sent back for changes') || title.includes('resolved manually')) return 'Your decisions'
+  return 'Cases'
 }
 
 export function AuditLog() {
   const [events, setEvents] = useState<AuditEvent[]>([])
   const [tab, setTab] = useState<(typeof TABS)[number]>(TABS[0])
   const [error, setError] = useState<string | null>(null)
-  const visible = events.filter((e) => tab === 'All events' || categoryOf(e.title) === tab)
+  const [loaded, setLoaded] = useState(false)
+  const visible = events.filter((e) => tab === 'Everything' || categoryOf(e.title) === tab)
 
   useEffect(() => {
-    getAuditEvents().then(setEvents).catch((e) => setError(messageOf(e)))
+    getAuditEvents().then(setEvents).catch((e) => setError(messageOf(e))).finally(() => setLoaded(true))
   }, [])
 
   return (
     <>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Compliance</p>
-          <h1 className="page-title">Audit log</h1>
-          <p className="page-sub">A permanent record of who did what and when</p>
+          <p className="eyebrow">History</p>
+          <h1 className="page-title">Activity log</h1>
+          <p className="page-sub">A permanent record of who did what and when — useful if a payment processor asks how a decision was made</p>
         </div>
         <div className="head-actions">
           <button
             className="btn btn-ghost"
+            disabled={visible.length === 0}
             onClick={() => downloadCsv('audit-log.csv', visible.map((e) => ({
-              title: e.title, detail: e.detail, orderId: e.caseOrderId ?? '', actor: e.actorName, timestamp: e.timestamp,
+              title: e.title, detail: e.detail, orderId: e.caseOrderId ?? '', who: e.actorName, when: formatDateTime(e.timestamp),
             })))}
           >
-            Export CSV
+            Download (CSV)
           </button>
         </div>
       </div>
 
       <ErrorBanner message={error} />
 
-      <div className="filters">
+      <div className="filters" role="group" aria-label="Filter activity">
         {TABS.map((t) => (
-          <span key={t} className={`chip ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
+          <button key={t} type="button" className={`chip ${tab === t ? 'active' : ''}`} aria-pressed={tab === t} onClick={() => setTab(t)}>
             {t}
-          </span>
+          </button>
         ))}
       </div>
 
@@ -58,15 +61,29 @@ export function AuditLog() {
         <table>
           <thead>
             <tr>
-              <th>Event</th>
-              <th>Case</th>
-              <th>Actor</th>
-              <th>Time</th>
+              <th>What happened</th>
+              <th>Order</th>
+              <th>Who</th>
+              <th>When</th>
             </tr>
           </thead>
           <tbody>
-            {visible.length === 0 && (
-              <tr><td colSpan={4} style={{ color: 'var(--text-3)', textAlign: 'center', padding: 20 }}>No events in this category.</td></tr>
+            {loaded && visible.length === 0 && (
+              <tr className="empty-row">
+                <td colSpan={4}>
+                  {events.length === 0 ? (
+                    <div className="empty">
+                      <h3>Nothing recorded yet</h3>
+                      <p>
+                        Every sign-in, settings change, investigation and approval will be listed here automatically.
+                        Start an investigation from the Cases page to see your first entries.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="empty"><p>Nothing in this category yet.</p></div>
+                  )}
+                </td>
+              </tr>
             )}
             {visible.map((e) => (
               <tr key={e.id}>
@@ -88,7 +105,7 @@ export function AuditLog() {
                   </div>
                   {e.actorName}
                 </td>
-                <td className="ts">{e.timestamp}</td>
+                <td className="ts">{formatDateTime(e.timestamp)}</td>
               </tr>
             ))}
           </tbody>

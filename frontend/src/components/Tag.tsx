@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { CaseState, Recommendation } from '../api/types'
+import type { CaseState, PolicyStatus, Recommendation } from '../api/types'
 
 const RECOMMENDATION_LABEL: Record<Recommendation, string> = {
   CONTEST: 'Contest this dispute',
@@ -35,12 +35,29 @@ const STATE_LABEL: Record<CaseState, string> = {
   AWAITING_HUMAN_APPROVAL: 'Needs your approval',
   MANUAL_REVIEW_REQUIRED: 'Needs your review',
   APPROVED: 'Approved',
-  EXPORTED: 'Sent',
+  EXPORTED: 'Report exported',
   FAILED: 'Something went wrong',
 }
 
+export function stateLabel(state: CaseState): string {
+  return STATE_LABEL[state] ?? state
+}
+
 export function StateTag({ state }: { state: CaseState }) {
-  return <Tag tone={STATE_TONE[state]}>{STATE_LABEL[state]}</Tag>
+  return <Tag tone={STATE_TONE[state] ?? 'neutral'}>{stateLabel(state)}</Tag>
+}
+
+const POLICY_STATUS: Record<PolicyStatus, { label: string; tone: 'accent' | 'warn' | 'success' | 'neutral' }> = {
+  ACTIVE: { label: 'In use', tone: 'success' },
+  RETIRED: { label: 'Retired', tone: 'neutral' },
+  INDEXING: { label: 'Reading file…', tone: 'warn' },
+  DRAFT: { label: 'Draft', tone: 'neutral' },
+  FAILED: { label: "Couldn't read file", tone: 'warn' },
+}
+
+export function PolicyStatusTag({ status }: { status: PolicyStatus }) {
+  const s = POLICY_STATUS[status] ?? { label: status, tone: 'neutral' }
+  return <Tag tone={s.tone}>{s.label}</Tag>
 }
 
 export function Tag({ tone, children }: { tone: 'accent' | 'warn' | 'success' | 'neutral'; children: ReactNode }) {

@@ -5,15 +5,15 @@ import { Icon } from './Icon'
 
 const CRUMBS: Record<string, string> = {
   '/': 'Cases',
-  '/policies': 'Policy Library',
-  '/audit': 'Audit',
+  '/policies': 'Your policies',
+  '/audit': 'Activity log',
   '/setup': 'Setup',
 }
 
 const NAV = [
   { to: '/', label: 'Cases', icon: 'cases', end: true },
-  { to: '/policies', label: 'Policy Library', icon: 'policy' },
-  { to: '/audit', label: 'Audit', icon: 'audit' },
+  { to: '/policies', label: 'Your policies', icon: 'policy' },
+  { to: '/audit', label: 'Activity log', icon: 'audit' },
   { to: '/setup', label: 'Setup', icon: 'setup' },
 ]
 
@@ -34,15 +34,12 @@ export function Layout() {
           <img className="brand-mark" src="/favicon.svg" alt="" />
           <div className="brand-text">
             <div className="brand-name">DisputeCopilot</div>
-            <div className="brand-sub">Northwind Retail</div>
+            <div className="brand-sub">Dispute evidence assistant</div>
           </div>
         </div>
-        <div className="workspace-pick" style={{ cursor: 'default' }}>
-          Production
-        </div>
-        <nav className="nav">
+        <nav className="nav" aria-label="Main">
           {NAV.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => (isActive ? 'active' : '')}>
+            <NavLink key={item.to} to={item.to} end={item.end} title={item.label} className={({ isActive }) => (isActive ? 'active' : '')}>
               <Icon name={item.icon} />
               <span className="label">{item.label}</span>
             </NavLink>
@@ -87,7 +84,7 @@ function Topbar({ onToggleSidebar, initials }: { onToggleSidebar: () => void; in
   const crumb = CRUMBS[pathname] ?? Object.entries(CRUMBS).find(([path]) => pathname.startsWith(path) && path !== '/')?.[1] ?? 'Cases'
   return (
     <div className="topbar">
-      <button className="icon-btn" onClick={onToggleSidebar} title="Toggle sidebar">
+      <button className="icon-btn" onClick={onToggleSidebar} title="Show or hide the menu" aria-label="Show or hide the menu">
         <Icon name="menu" />
       </button>
       <div className="crumbs">
@@ -97,17 +94,19 @@ function Topbar({ onToggleSidebar, initials }: { onToggleSidebar: () => void; in
       <div className="search-box">
         <Icon name="search" />
         <input
+          type="search"
+          aria-label="Search cases by order ID, customer name or email"
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Search order ID, customer…"
-          style={{ background: 'transparent', border: 'none', outline: 'none', color: 'inherit', width: '100%' }}
+          placeholder="Search cases…"
+          style={{ background: 'transparent', border: 'none', outline: 'none', color: 'inherit', width: '100%', font: 'inherit' }}
         />
       </div>
       <div className="topbar-divider" />
-      <div className="topbar-profile" onClick={handleLogout} title="Sign out" style={{ cursor: 'pointer' }}>
-        <div className="avatar">{initials}</div>
-        <Icon name="chevron-down" />
-      </div>
+      <button className="btn btn-ghost btn-sm topbar-profile" onClick={handleLogout}>
+        <div className="avatar" aria-hidden="true">{initials}</div>
+        Sign out
+      </button>
     </div>
   )
 }

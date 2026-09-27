@@ -19,8 +19,10 @@ spring:
 
 app:
   admin:
+    # Optional. Unset (the desktop default), the admin creates their own login on first run;
+    # set ADMIN_PASSWORD to manage the login from the environment instead.
     email: ${ADMIN_EMAIL:admin@disputecopilot.local}
-    password: ${ADMIN_PASSWORD:changeme}
+    password: ${ADMIN_PASSWORD:}
   secret-key: ${SECRET_KEY:dev-only-secret-key-change-in-prod}
 
 # Schema-discovery allowlist stand-in for the MVP demo profile.

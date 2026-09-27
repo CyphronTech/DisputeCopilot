@@ -33,13 +33,15 @@ public class BrowserLauncher implements ApplicationListener<ApplicationReadyEven
 
   @Override
   public void onApplicationEvent(ApplicationReadyEvent event) {
-    String url = "http://localhost:" + environment.getProperty("local.server.port", "8080");
+    String port = environment.getProperty("local.server.port", "8080");
+    DesktopRuntime.recordRunningPort(port);
+    String url = "http://localhost:" + port;
     openBrowser(url);
     addTrayIcon(url, event.getApplicationContext());
     SplashScreen.close();
   }
 
-  private void openBrowser(String url) {
+  static void openBrowser(String url) {
     try {
       if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
         Desktop.getDesktop().browse(URI.create(url));

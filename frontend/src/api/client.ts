@@ -46,6 +46,24 @@ export async function login(email: string, password: string): Promise<void> {
   if (!r.ok) throw new Error('Invalid email or password')
 }
 
+/** Public: false on a fresh install, before the owner has created their login. */
+export async function getAuthStatus(): Promise<{ passwordSet: boolean }> {
+  return getJson<{ passwordSet: boolean }>('/api/v1/session/status')
+}
+
+/** First run only: creates the one admin login and signs in with it. */
+export async function createAdminAccount(email: string, password: string): Promise<void> {
+  await sendJson('/api/v1/session/setup', 'POST', { email, password })
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await request('/api/v1/session/password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  })
+}
+
 export async function logout(): Promise<void> {
   await fetch('/api/v1/session', { method: 'DELETE' }).catch(() => null)
 }

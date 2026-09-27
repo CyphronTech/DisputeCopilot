@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { deletePolicy, getPolicies, uploadPolicy } from '../api/client'
 import { Icon } from '../components/Icon'
-import { Tag } from '../components/Tag'
+import { PolicyStatusTag } from '../components/Tag'
 import { ErrorBanner } from '../components/ErrorBanner'
-import type { PolicyDocument, PolicyStatus } from '../api/types'
+import type { PolicyDocument } from '../api/types'
+import { formatDateTime } from '../lib/format'
 
 const TYPE_FILTERS = ['All types', 'Terms & conditions', 'Shipping & delivery', 'Refund & replacement'] as const
 
@@ -14,12 +15,8 @@ function categoryOf(title: string): (typeof TYPE_FILTERS)[number] {
   return 'Terms & conditions'
 }
 
-const STATUS_TONE: Record<PolicyStatus, 'accent' | 'warn' | 'success' | 'neutral'> = {
-  ACTIVE: 'success',
-  RETIRED: 'neutral',
-  INDEXING: 'warn',
-  DRAFT: 'neutral',
-  FAILED: 'warn',
+function effective(from: string, to: string | null): string {
+  return to === null ? `Since ${formatDateTime(from)}` : `${formatDateTime(from)} – ${formatDateTime(to)}`
 }
 
 export function PolicyLibrary() {
@@ -28,6 +25,7 @@ export function PolicyLibrary() {
   const [filter, setFilter] = useState<(typeof TYPE_FILTERS)[number]>(TYPE_FILTERS[0])
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const visible = policies.filter((doc) => filter === 'All types' || categoryOf(doc.title) === filter)
 
@@ -38,6 +36,7 @@ export function PolicyLibrary() {
         setSelected((current) => docs.find((d) => d.documentId === current?.documentId) ?? docs[0] ?? null)
       })
       .catch((e) => setUploadError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setLoaded(true))
   }
 
   useEffect(() => {
@@ -59,7 +58,7 @@ export function PolicyLibrary() {
   }
 
   async function handleDelete(doc: PolicyDocument) {
-    if (!window.confirm(`Remove "${doc.title}"? The AI will stop citing it in new cases.`)) return
+    if (!window.confirm(`Remove "${doc.title}"? The AI will stop quoting it in new cases.`)) return
     setUploadError(null)
     try {
       await deletePolicy(doc.documentId)
@@ -73,9 +72,9 @@ export function PolicyLibrary() {
     <>
       <div className="page-head">
         <div>
-          <p className="eyebrow">Library</p>
-          <h1 className="page-title">Policy library</h1>
-          <p className="page-sub">Your return/refund policies — the AI cites these when making a recommendation</p>
+          <p className="eyebrow">Policies</p>
+          <h1 className="page-title">Your policies</h1>
+          <p className="page-sub">Your shipping, refund and terms documents — the AI quotes these when it makes a recommendation</p>
         </div>
         <div className="head-actions">
           <input
@@ -94,11 +93,11 @@ export function PolicyLibrary() {
 
       <ErrorBanner message={uploadError} />
 
-      <div className="filters">
+      <div className="filters" role="group" aria-label="Filter policies">
         {TYPE_FILTERS.map((f) => (
-          <span key={f} className={`chip ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
+          <button key={f} type="button" className={`chip ${filter === f ? 'active' : ''}`} aria-pressed={filter === f} onClick={() => setFilter(f)}>
             {f}
-          </span>
+          </button>
         ))}
       </div>
 
@@ -109,14 +108,28 @@ export function PolicyLibrary() {
               <tr>
                 <th>Document</th>
                 <th>Version</th>
-                <th>Effective</th>
+                <th>In effect</th>
                 <th>Status</th>
-                <th></th>
+                <th><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
-              {visible.length === 0 && (
-                <tr><td colSpan={5} style={{ color: 'var(--text-3)', textAlign: 'center', padding: 20 }}>No documents in this category.</td></tr>
+              {loaded && visible.length === 0 && (
+                <tr className="empty-row">
+                  <td colSpan={5}>
+                    {policies.length === 0 ? (
+                      <div className="empty">
+                        <h3>No policies uploaded yet</h3>
+                        <p>
+                          Upload your shipping, refund and terms &amp; conditions documents (PDF or plain text).
+                          The AI quotes them as evidence when it recommends contesting or accepting a dispute.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="empty"><p>No documents in this category.</p></div>
+                    )}
+                  </td>
+                </tr>
               )}
               {visible.map((doc) => (
                 <tr key={doc.documentId} onClick={() => setSelected(doc)} style={{ cursor: 'pointer' }}>
@@ -130,11 +143,11 @@ export function PolicyLibrary() {
                     </div>
                   </td>
                   <td className="mono">{doc.version}</td>
-                  <td className="mono" style={{ color: 'var(--text-3)', fontSize: 12 }}>
-                    {doc.effectiveFrom} {doc.effectiveTo === null ? '→ —' : `→ ${doc.effectiveTo}`}
+                  <td style={{ color: 'var(--text-3)', fontSize: 12 }}>
+                    {effective(doc.effectiveFrom, doc.effectiveTo)}
                   </td>
                   <td>
-                    <Tag tone={STATUS_TONE[doc.status]}>{doc.status}</Tag>
+                    <PolicyStatusTag status={doc.status} />
                   </td>
                   <td>
                     <button
@@ -160,17 +173,21 @@ export function PolicyLibrary() {
               <h2>{selected.title}</h2>
               {(selected.versions.length ? selected.versions : [selected]).map((v) => (
                 <div className="ver-item" key={v.version}>
-                  <span className="v">v{v.version}</span>
-                  <Tag tone={STATUS_TONE[v.status]}>{v.status}</Tag>
-                  <span className="dates">
-                    {v.effectiveFrom} {v.effectiveTo === null ? '→ —' : `→ ${v.effectiveTo}`}
-                  </span>
+                  <span className="v">Version {v.version}</span>
+                  <PolicyStatusTag status={v.status} />
+                  <span className="dates">{effective(v.effectiveFrom, v.effectiveTo)}</span>
                 </div>
               ))}
             </div>
           )}
           <div
             className="drop"
+            role="button"
+            tabIndex={0}
+            aria-label="Upload a policy file"
+            style={{ cursor: 'pointer' }}
+            onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click() } }}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault()
@@ -178,7 +195,7 @@ export function PolicyLibrary() {
             }}
           >
             <Icon name="upload" />
-            <div>{uploading ? 'Uploading…' : 'Drop a PDF or TXT file, or browse'}</div>
+            <div>{uploading ? 'Uploading…' : 'Drop a PDF or text file here, or click to choose one'}</div>
           </div>
         </div>
       </div>
