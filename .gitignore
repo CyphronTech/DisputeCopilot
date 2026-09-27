@@ -3,3 +3,5 @@ backend/run.log
 frontend/run.log
 *.log
 .env
+dist/
+dist-input/
