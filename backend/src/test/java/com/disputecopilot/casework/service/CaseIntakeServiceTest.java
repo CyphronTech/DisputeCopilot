@@ -73,4 +73,21 @@ class CaseIntakeServiceTest {
 
     assertEquals("MANUAL_REVIEW_REQUIRED", detail.recommendation());
   }
+
+  /** Order 222: an unresolved defective-item return, no refund, and the model said Contest at 0.9. */
+  @Test
+  void anOpenReturnOverridesAConfidentContestAndHoldsTheRefund() {
+    when(connector.readApprovedTable(eq("orders"), anyString())).thenReturn(List.of(Map.of("id", "222")));
+    when(connector.readApprovedTable(eq("refunds"), anyString())).thenReturn(List.of());
+    when(connector.readApprovedTable(eq("returns"), anyString())).thenReturn(List.of(
+        Map.of("order_id", "222", "status", "requested", "reason", "Item defective")));
+    when(connector.approvedTables()).thenReturn(List.of("orders", "refunds", "returns"));
+    when(agent.review(anyString(), any())).thenReturn(new EvidenceReviewAgent.Review("CONTEST", 0.9, null, "s", List.of()));
+
+    var detail = service.create("222");
+
+    assertEquals("MANUAL_REVIEW_REQUIRED", detail.recommendation());
+    assertEquals(0.0, detail.confidence());
+    org.junit.jupiter.api.Assertions.assertTrue(detail.caveat().contains("don't refund yet"), detail.caveat());
+  }
 }

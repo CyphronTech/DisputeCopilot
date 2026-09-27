@@ -116,6 +116,7 @@ public class CaseIntakeService {
 
   private CaseDetail collectEvidence(CaseEntity caseEntity) {
     boolean refundIssued = false;
+    boolean returnOnFile = false;
     List<String> roles = connector.approvedTables();
     TableRoleMappingStore.RoleMapping refundsMapping = roleMapping.load().get("refunds");
     for (String table : roles) {
@@ -129,6 +130,7 @@ public class CaseIntakeService {
         rows.forEach(row -> evidenceItems.save(toEvidenceItem(caseEntity.getId(), table, row)));
       }
       if (table.equals("refunds") && rows.stream().anyMatch(row -> looksIssued(row, refundsMapping))) refundIssued = true;
+      if (table.equals("returns") && !rows.isEmpty()) returnOnFile = true;
     }
     audit.record("Merchant DB evidence collected", roles.size() + " tables queried", caseEntity.getOrderId(), "System", true, "db", "accent");
     List<EvidenceItemEntity> evidence = evidenceItems.findByCaseId(caseEntity.getId());
@@ -150,6 +152,13 @@ public class CaseIntakeService {
       caveat = "Flagged for you: the AI recommended accepting, but there's no refund on record for this order yet.";
       recommendation = "MANUAL_REVIEW_REQUIRED";
       confidence = 0.0;
+    } else if (returnOnFile && !refundIssued && !recommendation.equals("MANUAL_REVIEW_REQUIRED")) {
+      // The prompt already asks for manual review here, and models still confidently contested
+      // orders with an unresolved defective-item return. A return on a "not received" dispute is a
+      // conflicting signal only the merchant can weigh, so this is enforced, not requested.
+      caveat = "Flagged for you: the customer has a return request on file for this order. Check where that return stands before deciding.";
+      recommendation = "MANUAL_REVIEW_REQUIRED";
+      confidence = 0.0;
     }
 
     CaseState nextState = recommendation.equals("MANUAL_REVIEW_REQUIRED")
@@ -160,6 +169,8 @@ public class CaseIntakeService {
     // unambiguous answer to "should I refund this" regardless of prose quality.
     String refundNote = refundIssued
         ? "A refund has already been issued for this order — no further refund is needed."
+        : returnOnFile
+            ? "No refund is on record, but there's a return request — don't refund yet. Check whether the item has come back, then follow your return policy."
         : recommendation.equals("CONTEST")
             ? "No refund is on record — since you're contesting, do not refund the customer."
             : "No refund is on record — hold off on refunding until this case is resolved.";

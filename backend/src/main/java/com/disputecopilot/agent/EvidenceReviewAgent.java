@@ -33,6 +33,12 @@ public class EvidenceReviewAgent {
       relevant to your recommendation, cite it by copying a short quote EXACTLY as written in \
       the excerpt (do not paraphrase) into the citations array, with the matching document title.
 
+      Only state facts that appear in the evidence. A field shown as null or empty means that \
+      thing has NOT happened: "Received at: null" on a return means the merchant has NOT got the \
+      item back. Never describe an event the evidence doesn't show. Note that a customer who \
+      asked to return an item has, by their own account, received it, which bears on a "not \
+      received" claim, but an unresolved return still has to be settled by the merchant.
+
       Also write a "summary": 2-3 plain-English sentences a non-technical shop owner could read \
       and immediately understand, with no jargon (no "evidence rows", "gap", "citation", table \
       names, or JSON-speak). State what the customer ordered, what the records show happened, \
