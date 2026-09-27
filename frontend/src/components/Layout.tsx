@@ -31,7 +31,7 @@ export function Layout() {
     <div className={`shell ${collapsed ? 'collapsed' : ''}`}>
       <aside className="sidebar">
         <div className="brand-row">
-          <div className="brand-mark">DC</div>
+          <img className="brand-mark" src="/favicon.svg" alt="" />
           <div className="brand-text">
             <div className="brand-name">DisputeCopilot</div>
             <div className="brand-sub">Northwind Retail</div>

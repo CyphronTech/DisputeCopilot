@@ -1,16 +1,12 @@
 package com.disputecopilot.setup;
 
-import java.awt.Color;
 import java.awt.Desktop;
-import java.awt.Font;
-import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
-import java.awt.RenderingHints;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
-import java.awt.image.BufferedImage;
+import java.awt.Toolkit;
 import java.net.URI;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
@@ -40,6 +36,7 @@ public class BrowserLauncher implements ApplicationListener<ApplicationReadyEven
     String url = "http://localhost:" + environment.getProperty("local.server.port", "8080");
     openBrowser(url);
     addTrayIcon(url, event.getApplicationContext());
+    SplashScreen.close();
   }
 
   private void openBrowser(String url) {
@@ -77,18 +74,9 @@ public class BrowserLauncher implements ApplicationListener<ApplicationReadyEven
     }
   }
 
-  /** Small "DC" badge matching the app's own brand mark — generated so we don't ship a separate icon asset. */
+  /** The app's real brand mark (see assets/logo.svg), bundled at src/main/resources/branding/logo.png. */
   private Image brandIcon() {
-    int size = 16;
-    BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
-    Graphics2D g = image.createGraphics();
-    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-    g.setColor(new Color(0x2F, 0x6F, 0xE0));
-    g.fillRoundRect(0, 0, size, size, 5, 5);
-    g.setColor(Color.WHITE);
-    g.setFont(new Font("SansSerif", Font.BOLD, 9));
-    g.drawString("DC", 1, 12);
-    g.dispose();
-    return image;
+    Image image = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/branding/logo.png"));
+    return image.getScaledInstance(16, 16, Image.SCALE_SMOOTH);
   }
 }

@@ -122,6 +122,17 @@ public class CaseIntakeService {
 
       CaseState nextState = recommendation.equals("MANUAL_REVIEW_REQUIRED")
           ? CaseState.MANUAL_REVIEW_REQUIRED : CaseState.AWAITING_HUMAN_APPROVAL;
+
+      // Deterministic refund line — computed from the connector's own read of the refunds table,
+      // not left to how the model happens to phrase its summary, so the merchant always sees an
+      // unambiguous answer to "should I refund this" regardless of prose quality.
+      String refundNote = refundIssued
+          ? "A refund has already been issued for this order — no further refund is needed."
+          : recommendation.equals("CONTEST")
+              ? "No refund is on record — since you're contesting, do not refund the customer."
+              : "No refund is on record — hold off on refunding until this case is resolved.";
+      caveat = caveat == null ? refundNote : caveat + " " + refundNote;
+
       caseEntity.applyReview(recommendation, confidence, caveat, review.summary(), nextState);
       for (EvidenceReviewAgent.Citation citation : review.citations()) {
         citations.save(new CaseCitationEntity(UUID.randomUUID(), caseEntity.getId(), UUID.fromString(citation.documentId()), citation.title(), citation.version(), citation.quote()));

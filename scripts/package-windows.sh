@@ -34,6 +34,7 @@ export PATH="$PATH:$WIX_BIN"
   --win-menu \
   --win-dir-chooser \
   --win-upgrade-uuid "$UPGRADE_UUID" \
+  --icon "$(cygpath -w "$ROOT_DIR/assets/icon.ico")" \
   --java-options "-Dspring.profiles.active=bundled" \
   --java-options "-Djava.awt.headless=false"
 

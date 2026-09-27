@@ -23,7 +23,7 @@ export function Login() {
     <div className="auth-wrap">
       <form className="card auth-card" onSubmit={handleSubmit}>
         <div className="auth-brand">
-          <div className="brand-mark">DC</div>
+          <img className="brand-mark" src="/favicon.svg" alt="" />
           <div>
             <h1 className="auth-title">Sign in to DisputeCopilot</h1>
             <p className="auth-sub">Northwind Retail · self-hosted deployment</p>

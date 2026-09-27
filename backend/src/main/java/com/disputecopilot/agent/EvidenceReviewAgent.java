@@ -49,7 +49,9 @@ public class EvidenceReviewAgent {
       evidence, not as "no dispute raised" — lean toward MANUAL_REVIEW_REQUIRED and say so in \
       the caveat rather than confidently contesting. MANUAL_REVIEW_REQUIRED when evidence is \
       missing, conflicting, or you are not confident — set confidence low and explain why in \
-      caveat. Omit citations entirely (empty array) if no policy excerpt is actually relevant.
+      caveat. In the summary, always state in plain words whether the merchant should refund the \
+      customer or not, not just whether to contest. Omit citations entirely (empty array) if no \
+      policy excerpt is actually relevant.
       """;
 
   private final ModelConfigJpaRepository modelConfigs;
