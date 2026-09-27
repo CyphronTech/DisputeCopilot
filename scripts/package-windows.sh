@@ -35,22 +35,21 @@ export PATH="$PATH:$WIX_BIN"
   --win-shortcut \
   --win-menu \
   --win-menu-group "DisputeCopilot" \
-  --win-per-user-install \
-  --install-dir "DisputeCopilotApp" \
+  --win-dir-chooser \
   --win-upgrade-uuid "$UPGRADE_UUID" \
   --icon "$(cygpath -w "$ROOT_DIR/assets/icon.ico")" \
   --java-options "-Dspring.profiles.active=bundled" \
   --java-options "-Djava.awt.headless=false"
 
-# Per-user MSI, deliberately:
-#   - A per-machine install needs a UAC elevation handoff. When that handoff wedges, msiexec is
-#     left running with no live install session and every later attempt dies on 2502/2503 until
-#     the orphans are killed. Installing under %LOCALAPPDATA% needs no elevation, so there is no
-#     handoff to wedge and no admin rights to install or uninstall.
-#   - --type msi, not exe: the exe is a bootstrapper that extracts to %TEMP% and re-launches
-#     msiexec, which is a second way to hit the same failure.
-#   - --install-dir keeps binaries in %LOCALAPPDATA%\DisputeCopilotApp, away from the database
-#     in %LOCALAPPDATA%\DisputeCopilot, so an upgrade or uninstall can't take the data with it.
-#     It must stay a single path segment — a nested one ("Programs\DisputeCopilot") makes WiX
-#     light.exe fail with exit 204.
+# Plain per-machine MSI, and both halves of that matter. Every MSI has to write
+# C:\Windows\Installer\inprogressinstallinfo.ipi, which only an elevated process may do; without
+# that marker Windows Installer reports "RunScript when not marked in progress" (2503) and then
+# "InstallFinalize when no install in progress" (2502). Double-clicking a per-machine MSI makes
+# Windows raise the UAC prompt up front, so the whole install runs elevated and can write it.
+#   - Not --win-per-user-install: it suppresses that prompt, so the install runs unelevated and
+#     fails with 2503 every time.
+#   - Not --type exe: the exe is a bootstrapper that re-launches msiexec unelevated, which hits
+#     the identical failure.
+# Binaries land in Program Files, so the database in %LOCALAPPDATA%\DisputeCopilot is untouched
+# by upgrades and uninstalls.
 echo "Built: $ROOT_DIR/dist/DisputeCopilot-$VERSION.msi"
