@@ -63,7 +63,10 @@ public class PostgresMerchantConnector {
       throw new IllegalArgumentException("Table not on the approved allowlist: " + table);
     }
     String columnList = String.join(", ", columns);
-    String sql = "select " + columnList + " from " + table + " where " + orderIdColumn + " = ? limit 1";
+    // Cast to text: the order-id column's real type varies by merchant schema (int, bigint,
+    // uuid, varchar, ...) but the order ID always arrives here as a String — casting the
+    // column instead of guessing its type works regardless of what it actually is.
+    String sql = "select " + columnList + " from " + table + " where " + orderIdColumn + "::text = ? limit 1";
     try (Connection connection = schemaDiscovery.openConnection();
         PreparedStatement statement = connection.prepareStatement(sql)) {
       statement.setString(1, orderId);
