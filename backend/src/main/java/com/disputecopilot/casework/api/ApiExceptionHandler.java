@@ -20,6 +20,11 @@ public class ApiExceptionHandler {
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(message);
   }
 
+  @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+  public ResponseEntity<String> tooLarge() {
+    return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body("That file is over the 10 MB limit for a policy document.");
+  }
+
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<String> badRequest(IllegalArgumentException e) {
     return ResponseEntity.badRequest().body(e.getMessage());

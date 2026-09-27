@@ -13,7 +13,7 @@
 
   <groupId>com.disputecopilot</groupId>
   <artifactId>disputecopilot-backend</artifactId>
-  <version>0.2.2-SNAPSHOT</version>
+  <version>0.2.3-SNAPSHOT</version>
   <name>disputecopilot-backend</name>
 
   <properties>

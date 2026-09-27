@@ -131,8 +131,8 @@ public class ConnectorSetupController {
       List<String> columns = schema.get(m.tableName());
       if (columns == null || !columns.contains(m.orderIdColumn())) continue;
       validated.put(entry.getKey(), new TableRoleMappingStore.RoleMapping(m.tableName(), m.orderIdColumn(),
-          validColumn(columns, m.customerNameColumn()), validColumn(columns, m.customerEmailColumn()),
-          validColumn(columns, m.statusColumn()), m.issuedValue()));
+          validColumns(columns, m.customerNameColumn()), validColumn(columns, m.customerEmailColumn()),
+          validColumn(columns, m.statusColumn()), m.issuedValue(), validColumn(columns, m.customerIdColumn())));
     }
     roleMappingStore.save(validated);
     audit.record("Table role mapping updated", validated.size() + " roles mapped", null, "Admin", false, "setup", "neutral");
@@ -141,5 +141,13 @@ public class ConnectorSetupController {
 
   private String validColumn(List<String> columns, String candidate) {
     return candidate != null && columns.contains(candidate) ? candidate : null;
+  }
+
+  /** "first_name,last_name": keeps only the parts that really are columns of this table. */
+  static String validColumns(List<String> columns, String candidate) {
+    if (candidate == null) return null;
+    String kept = java.util.Arrays.stream(candidate.split(",")).map(String::strip).filter(columns::contains)
+        .collect(java.util.stream.Collectors.joining(","));
+    return kept.isEmpty() ? null : kept;
   }
 }

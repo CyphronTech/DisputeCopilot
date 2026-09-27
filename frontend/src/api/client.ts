@@ -191,6 +191,7 @@ export interface RoleMapping {
   customerEmailColumn?: string | null
   statusColumn?: string | null
   issuedValue?: string | null
+  customerIdColumn?: string | null
 }
 
 export async function suggestTableMapping(): Promise<Record<string, RoleMapping>> {

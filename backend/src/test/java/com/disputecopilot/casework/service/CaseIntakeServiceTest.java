@@ -74,6 +74,34 @@ class CaseIntakeServiceTest {
     assertEquals("MANUAL_REVIEW_REQUIRED", detail.recommendation());
   }
 
+  /** Normalized schema: the order only has customer_id; the name lives in customers.first_name/last_name. */
+  @Test
+  void customerNameComesFromTheLinkedCustomersTable() {
+    when(roleMapping.load()).thenReturn(Map.of(
+        "orders", new TableRoleMappingStore.RoleMapping("orders", "id", null, null, null, null, "customer_id"),
+        "customers", new TableRoleMappingStore.RoleMapping("customers", "id", "first_name,last_name", "email", null, null, null)));
+    when(connector.readApprovedTable(eq("orders"), anyString())).thenReturn(List.of(Map.of("id", 222, "customer_id", 5)));
+    when(connector.readApprovedTable("customers", "5")).thenReturn(List.of(
+        Map.of("id", 5, "first_name", "Jane", "last_name", "Doe", "email", "jane@example.test")));
+    when(connector.approvedTables()).thenReturn(List.of("orders"));
+    when(agent.review(anyString(), any())).thenReturn(new EvidenceReviewAgent.Review("CONTEST", 0.9, null, "s", List.of()));
+
+    assertEquals("Jane Doe", service.create("222").customerName());
+  }
+
+  @Test
+  void aFailedCustomerLookupStillOpensTheCase() {
+    when(roleMapping.load()).thenReturn(Map.of(
+        "orders", new TableRoleMappingStore.RoleMapping("orders", "id", null, null, null, null, "customer_id"),
+        "customers", new TableRoleMappingStore.RoleMapping("customers", "id", "first_name", null, null, null, null)));
+    when(connector.readApprovedTable(eq("orders"), anyString())).thenReturn(List.of(Map.of("id", 222, "customer_id", 5)));
+    when(connector.readApprovedTable("customers", "5")).thenThrow(new IllegalArgumentException("Table not on the approved allowlist: customers"));
+    when(connector.approvedTables()).thenReturn(List.of("orders"));
+    when(agent.review(anyString(), any())).thenReturn(new EvidenceReviewAgent.Review("CONTEST", 0.9, null, "s", List.of()));
+
+    assertEquals("Unknown customer", service.create("222").customerName());
+  }
+
   /** Order 222: an unresolved defective-item return, no refund, and the model said Contest at 0.9. */
   @Test
   void anOpenReturnOverridesAConfidentContestAndHoldsTheRefund() {

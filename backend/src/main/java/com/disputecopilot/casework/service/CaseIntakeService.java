@@ -95,23 +95,44 @@ public class CaseIntakeService {
   }
 
   private CaseEntity newCase(String orderId, List<Map<String, Object>> orderRows) {
-    TableRoleMappingStore.RoleMapping ordersMapping = roleMapping.load().get("orders");
-    String nameColumn = ordersMapping != null && ordersMapping.customerNameColumn() != null ? ordersMapping.customerNameColumn() : "customer_name";
-    String emailColumn = ordersMapping != null && ordersMapping.customerEmailColumn() != null ? ordersMapping.customerEmailColumn() : "customer_email";
-    // A normalized schema often keeps the customer in its own table, so the orders row has no
-    // name/email column at all. Reading a missing key would otherwise render the literal text
-    // "null" as the customer's name throughout the UI and the exported report.
-    String customerName = firstNonBlank(orderRows, nameColumn, "Unknown customer");
-    String customerEmail = firstNonBlank(orderRows, emailColumn, "Unknown email");
-    CaseEntity entity = new CaseEntity(UUID.randomUUID(), orderId, customerName, customerEmail, CaseState.FETCHING_DATA, Instant.now());
+    Map<String, TableRoleMappingStore.RoleMapping> mappings = roleMapping.load();
+    TableRoleMappingStore.RoleMapping ordersMapping = mappings.get("orders");
+    Map<String, Object> order = orderRows.get(0);
+    String name = columnsValue(order, ordersMapping != null && ordersMapping.customerNameColumn() != null ? ordersMapping.customerNameColumn() : "customer_name");
+    String email = columnsValue(order, ordersMapping != null && ordersMapping.customerEmailColumn() != null ? ordersMapping.customerEmailColumn() : "customer_email");
+
+    // Normalized schemas keep the customer in their own table, linked by an id on the order.
+    TableRoleMappingStore.RoleMapping customersMapping = mappings.get("customers");
+    Object customerId = ordersMapping == null || ordersMapping.customerIdColumn() == null ? null : order.get(ordersMapping.customerIdColumn());
+    if ((name == null || email == null) && customersMapping != null && customerId != null) {
+      try {
+        List<Map<String, Object>> customer = connector.readApprovedTable("customers", String.valueOf(customerId));
+        if (!customer.isEmpty()) {
+          if (name == null) name = columnsValue(customer.get(0), customersMapping.customerNameColumn());
+          if (email == null) email = columnsValue(customer.get(0), customersMapping.customerEmailColumn());
+        }
+      } catch (RuntimeException headerOnly) {
+        // The name only labels the case; it isn't evidence, so a failed lookup mustn't stop the investigation.
+      }
+    }
+    CaseEntity entity = new CaseEntity(UUID.randomUUID(), orderId, name == null ? "Unknown customer" : name,
+        email == null ? "Unknown email" : email, CaseState.FETCHING_DATA, Instant.now());
     audit.record("Case opened", "investigation started", orderId, "System", true, "setup", "neutral");
     return cases.save(entity);
   }
 
-  private String firstNonBlank(List<Map<String, Object>> rows, String column, String fallback) {
-    if (rows.isEmpty()) return fallback;
-    Object value = rows.get(0).get(column);
-    return value == null || String.valueOf(value).isBlank() ? fallback : String.valueOf(value);
+  /**
+   * Reads one or more comma-separated columns ("first_name,last_name") and joins what's there.
+   * Null when nothing is — a missing key must never render as the literal text "null".
+   */
+  static String columnsValue(Map<String, Object> row, String columns) {
+    if (columns == null) return null;
+    String joined = java.util.Arrays.stream(columns.split(","))
+        .map(c -> row.get(c.strip()))
+        .filter(v -> v != null && !String.valueOf(v).isBlank())
+        .map(v -> String.valueOf(v).strip())
+        .collect(java.util.stream.Collectors.joining(" "));
+    return joined.isEmpty() ? null : joined;
   }
 
   private CaseDetail collectEvidence(CaseEntity caseEntity) {

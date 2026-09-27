@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class SchemaMappingSuggester {
 
-  private static final List<String> ROLES = List.of("orders", "payments", "fulfillment", "refunds", "returns", "communications");
+  private static final List<String> ROLES = List.of("orders", "payments", "fulfillment", "refunds", "returns", "communications", "customers");
 
   private static final String SYSTEM_PROMPT = """
       You map a merchant's database schema to the fixed roles a dispute-resolution app needs:
@@ -36,13 +36,18 @@ public class SchemaMappingSuggester {
       column name that isn't in the list you were given.
 
       For the "orders" role only, also pick the columns holding the customer's name and email
-      if present. For the "refunds" role only, also pick the column holding the refund's status
+      if present. If the orders table has no name/email but links to a separate customers table,
+      set "customerIdColumn" on orders to the linking column (e.g. "customer_id") and add a
+      "customers" role: its "table" is the customers table, its "orderIdColumn" is that table's
+      own customer-id key (e.g. "id"), plus "customerNameColumn" and "customerEmailColumn". A name
+      split over two columns is written comma-separated, first name first ("first_name,last_name"). For the "refunds" role only, also pick the column holding the refund's status
       and the exact value in that column that means the refund was issued/completed/paid out
       (e.g. "issued", "completed", "REFUNDED") — copy the value spelling you'd expect the
       merchant to actually store, not necessarily the word "issued".
 
       Respond with ONLY a JSON object, no markdown fences, no prose:
-      {"orders": {"table": "...", "orderIdColumn": "...", "customerNameColumn": "...", "customerEmailColumn": "..."},
+      {"orders": {"table": "...", "orderIdColumn": "...", "customerNameColumn": "...", "customerEmailColumn": "...", "customerIdColumn": "..."},
+       "customers": {"table": "...", "orderIdColumn": "...", "customerNameColumn": "...", "customerEmailColumn": "..."},
        "refunds": {"table": "...", "orderIdColumn": "...", "statusColumn": "...", "issuedValue": "..."},
        "payments": {"table": "...", "orderIdColumn": "..."}, ...}
       Omit any role you can't confidently map, and omit any of the extra per-role fields you're
@@ -82,11 +87,12 @@ public class SchemaMappingSuggester {
         List<String> columns = schema.get(table);
         if (columns == null || !columns.contains(column)) continue;
 
-        String nameColumn = validColumn(columns, node.path("customerNameColumn").asText(null));
+        String nameColumn = ConnectorSetupController.validColumns(columns, node.path("customerNameColumn").asText(null));
         String emailColumn = validColumn(columns, node.path("customerEmailColumn").asText(null));
         String statusColumn = validColumn(columns, node.path("statusColumn").asText(null));
         String issuedValue = node.hasNonNull("issuedValue") ? node.path("issuedValue").asText() : null;
-        result.put(role, new TableRoleMappingStore.RoleMapping(table, column, nameColumn, emailColumn, statusColumn, issuedValue));
+        String customerIdColumn = validColumn(columns, node.path("customerIdColumn").asText(null));
+        result.put(role, new TableRoleMappingStore.RoleMapping(table, column, nameColumn, emailColumn, statusColumn, issuedValue, customerIdColumn));
       }
       return result;
     } catch (Exception e) {

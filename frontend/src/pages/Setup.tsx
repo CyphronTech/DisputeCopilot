@@ -12,9 +12,10 @@ import type { ModelProvider } from '../api/types'
 
 const TABS = ['Integrations', 'Password']
 
-const ROLES = ['orders', 'payments', 'fulfillment', 'refunds', 'returns', 'communications'] as const
+const ROLES = ['orders', 'payments', 'fulfillment', 'refunds', 'returns', 'communications', 'customers'] as const
 const ROLE_LABEL: Record<(typeof ROLES)[number], string> = {
   orders: 'Orders', payments: 'Payments', fulfillment: 'Shipping & delivery', refunds: 'Refunds', returns: 'Returns', communications: 'Customer messages',
+  customers: 'Customers (names & emails)',
 }
 
 const PROVIDER_DEFAULTS: Record<ModelProvider, { label: string; baseUrl: string; model: string }> = {
@@ -524,10 +525,10 @@ export function Setup() {
                         value={roleMapping[role]?.orderIdColumn ?? ''}
                         onChange={(e) => updateRoleMapping(role, 'orderIdColumn', e.target.value)}
                         disabled={!roleMapping[role]?.tableName}
-                        aria-label={`${ROLE_LABEL[role]}: column with the order ID`}
+                        aria-label={role === 'customers' ? 'Customers: column with the customer ID' : `${ROLE_LABEL[role]}: column with the order ID`}
                         style={{ flex: 1, minWidth: 0 }}
                       >
-                        <option value="">column with the order ID</option>
+                        <option value="">{role === 'customers' ? 'column with the customer ID' : 'column with the order ID'}</option>
                         {(schema[roleMapping[role]?.tableName ?? ''] ?? []).map((c) => (
                           <option key={c} value={c}>{c}</option>
                         ))}
@@ -557,8 +558,57 @@ export function Setup() {
                             <option key={c} value={c}>{c}</option>
                           ))}
                         </select>
+                        <select
+                          value={roleMapping[role]?.customerIdColumn ?? ''}
+                          onChange={(e) => updateRoleMapping(role, 'customerIdColumn', e.target.value)}
+                          aria-label="Column linking the order to your customers table"
+                          title="Use this if customer names live in a separate customers table"
+                          style={{ flex: 1, minWidth: 0 }}
+                        >
+                          <option value="">links to customers table (optional)</option>
+                          {(schema[roleMapping[role]?.tableName ?? ''] ?? []).map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
                       </div>
                     )}
+                    {role === 'customers' && roleMapping[role]?.tableName && (() => {
+                      const [first = '', last = ''] = (roleMapping[role]?.customerNameColumn ?? '').split(',')
+                      const setName = (f: string, l: string) => updateRoleMapping(role, 'customerNameColumn', [f, l].filter(Boolean).join(','))
+                      return (
+                        <div style={{ gridColumn: '2 / -1', marginTop: 6 }}>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <select value={first} onChange={(e) => setName(e.target.value, last)} aria-label="Customers: first name (or full name) column" style={{ flex: 1, minWidth: 0 }}>
+                              <option value="">name column (or first name)</option>
+                              {(schema[roleMapping[role]?.tableName ?? ''] ?? []).map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                            </select>
+                            <select value={last} onChange={(e) => setName(first, e.target.value)} aria-label="Customers: last name column" disabled={!first} style={{ flex: 1, minWidth: 0 }}>
+                              <option value="">last name column (optional)</option>
+                              {(schema[roleMapping[role]?.tableName ?? ''] ?? []).map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                            </select>
+                            <select
+                              value={roleMapping[role]?.customerEmailColumn ?? ''}
+                              onChange={(e) => updateRoleMapping(role, 'customerEmailColumn', e.target.value)}
+                              aria-label="Customers: email column"
+                              style={{ flex: 1, minWidth: 0 }}
+                            >
+                              <option value="">email column (optional)</option>
+                              {(schema[roleMapping[role]?.tableName ?? ''] ?? []).map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                            </select>
+                          </div>
+                          <p className="hint" style={{ margin: '6px 0 0' }}>
+                            Only used to show who each case is about — never sent to the AI. Also tick this table's name and email
+                            columns in the list above, and set "links to customers table" on the Orders row.
+                          </p>
+                        </div>
+                      )
+                    })()}
                     {role === 'refunds' && roleMapping[role]?.tableName && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 6, gridColumn: '2 / -1' }}>
                         <select

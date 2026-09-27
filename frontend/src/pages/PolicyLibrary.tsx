@@ -23,7 +23,7 @@ export function PolicyLibrary() {
   const [policies, setPolicies] = useState<PolicyDocument[]>([])
   const [selected, setSelected] = useState<PolicyDocument | null>(null)
   const [filter, setFilter] = useState<(typeof TYPE_FILTERS)[number]>(TYPE_FILTERS[0])
-  const [uploading, setUploading] = useState(false)
+  const [uploading, setUploading] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -43,17 +43,26 @@ export function PolicyLibrary() {
     refresh()
   }, [])
 
-  async function handleUpload(file: File | undefined) {
-    if (!file) return
-    setUploading(true)
+  // One request per file, in turn: a bad file (wrong type, no readable text) is reported by name
+  // and the rest still go through, instead of one failure sinking the whole batch.
+  async function handleUpload(fileList: FileList | null) {
+    const files = Array.from(fileList ?? [])
+    if (files.length === 0) return
     setUploadError(null)
-    try {
-      await uploadPolicy(file)
-      await refresh()
-    } catch (e) {
-      setUploadError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setUploading(false)
+    const failures: string[] = []
+    for (const [i, file] of files.entries()) {
+      setUploading(files.length > 1 ? `Uploading ${i + 1} of ${files.length}…` : 'Uploading…')
+      try {
+        await uploadPolicy(file)
+      } catch (e) {
+        failures.push(`${file.name}: ${e instanceof Error ? e.message : String(e)}`)
+      }
+    }
+    setUploading(null)
+    await refresh()
+    if (failures.length > 0) {
+      const done = files.length - failures.length
+      setUploadError(`${done > 0 ? `${done} uploaded. ` : ''}Couldn't upload ${failures.join(' · ')}`)
     }
   }
 
@@ -80,13 +89,17 @@ export function PolicyLibrary() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.txt"
+            accept=".pdf,.txt,.md"
+            multiple
             style={{ display: 'none' }}
-            onChange={(e) => handleUpload(e.target.files?.[0])}
+            onChange={(e) => {
+              handleUpload(e.target.files)
+              e.target.value = '' // so choosing the same file again still triggers an upload
+            }}
           />
-          <button className="btn btn-primary" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+          <button className="btn btn-primary" disabled={uploading !== null} onClick={() => fileInputRef.current?.click()}>
             <Icon name="upload" />
-            {uploading ? 'Uploading…' : 'Upload policy'}
+            {uploading ?? 'Upload policies'}
           </button>
         </div>
       </div>
@@ -184,18 +197,18 @@ export function PolicyLibrary() {
             className="drop"
             role="button"
             tabIndex={0}
-            aria-label="Upload a policy file"
+            aria-label="Upload policy files"
             style={{ cursor: 'pointer' }}
             onClick={() => fileInputRef.current?.click()}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click() } }}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault()
-              handleUpload(e.dataTransfer.files?.[0])
+              handleUpload(e.dataTransfer.files)
             }}
           >
             <Icon name="upload" />
-            <div>{uploading ? 'Uploading…' : 'Drop a PDF or text file here, or click to choose one'}</div>
+            <div>{uploading ?? 'Drop PDF or text files here, or click to choose — you can pick several at once'}</div>
           </div>
         </div>
       </div>
