@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Burn bootstrapper around the jpackage MSI. On some machines a double-clicked MSI never
+  self-elevates ("Running product ... with user privileges" in the verbose log), then fails with
+  2503/2502 because it can't write C:\Windows\Installer\inprogressinstallinfo.ipi. Burn elevates
+  by relaunching itself with the "runas" verb before touching the MSI, the same path that
+  succeeds, and its Apps & Features entry uninstalls through that path too.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:bal="http://schemas.microsoft.com/wix/BalExtension">
+  <Bundle Name="DisputeCopilot" Version="$(var.Version)" Manufacturer="DisputeCopilot"
+          UpgradeCode="$(var.UpgradeCode)" IconSourceFile="$(var.Icon)">
+    <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.HyperlinkLicense">
+      <bal:WixStandardBootstrapperApplication LicenseUrl="" SuppressOptionsUI="yes" LogoFile="$(var.Logo)" />
+    </BootstrapperApplicationRef>
+    <Chain>
+      <MsiPackage SourceFile="$(var.Msi)" />
+    </Chain>
+  </Bundle>
+</Wix>

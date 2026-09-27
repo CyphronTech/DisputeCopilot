@@ -6,6 +6,8 @@ set -euo pipefail
 # Fixed across all releases so Windows Installer treats new versions as upgrades of the same
 # product instead of unrelated installs (do not regenerate this per build).
 UPGRADE_UUID="f699fa1c-d966-461c-8085-aba6b55fdf71"
+# Same rule for the Burn bundle that wraps the MSI; must differ from the MSI's code.
+BUNDLE_UPGRADE_UUID="2b6664c1-a6e7-4d1b-9077-3ce7a16218df"
 JAVA_HOME_BIN="D:\\java\\temurin-21\\bin"
 WIX_BIN="/c/Program Files (x86)/WiX Toolset v3.14/bin"
 
@@ -31,25 +33,32 @@ export PATH="$PATH:$WIX_BIN"
   --name DisputeCopilot \
   --app-version "$VERSION" \
   --vendor "DisputeCopilot" \
-  --dest "$(cygpath -w "$ROOT_DIR/dist")" \
+  --dest "$(cygpath -w "$ROOT_DIR/dist-input")" \
   --win-shortcut \
   --win-menu \
   --win-menu-group "DisputeCopilot" \
-  --win-dir-chooser \
   --win-upgrade-uuid "$UPGRADE_UUID" \
   --icon "$(cygpath -w "$ROOT_DIR/assets/icon.ico")" \
   --java-options "-Dspring.profiles.active=bundled" \
   --java-options "-Djava.awt.headless=false"
 
-# Plain per-machine MSI, and both halves of that matter. Every MSI has to write
-# C:\Windows\Installer\inprogressinstallinfo.ipi, which only an elevated process may do; without
-# that marker Windows Installer reports "RunScript when not marked in progress" (2503) and then
-# "InstallFinalize when no install in progress" (2502). Double-clicking a per-machine MSI makes
-# Windows raise the UAC prompt up front, so the whole install runs elevated and can write it.
-#   - Not --win-per-user-install: it suppresses that prompt, so the install runs unelevated and
-#     fails with 2503 every time.
-#   - Not --type exe: the exe is a bootstrapper that re-launches msiexec unelevated, which hits
-#     the identical failure.
-# Binaries land in Program Files, so the database in %LOCALAPPDATA%\DisputeCopilot is untouched
-# by upgrades and uninstalls.
-echo "Built: $ROOT_DIR/dist/DisputeCopilot-$VERSION.msi"
+# The MSI is only an intermediate. Every MSI must write C:\Windows\Installer\inprogressinstallinfo.ipi,
+# which needs elevation, and a double-clicked MSI does not reliably self-elevate: the verbose log
+# shows "Running product ... with user privileges", then 2503/2502. The same MSI launched already
+# elevated logs "with elevated privileges" and succeeds. The Burn bundle (bundle.wxs) provides
+# exactly that — it relaunches itself with "runas" before running the MSI, for install and for
+# uninstall from Settings > Apps. Neither --win-per-user-install nor --type exe fixes this: both
+# still run msiexec unelevated.
+"$WIX_BIN/candle.exe" -nologo -ext WixBalExtension \
+  -dVersion="$VERSION" \
+  -dUpgradeCode="$BUNDLE_UPGRADE_UUID" \
+  -dMsi="$(cygpath -w "$ROOT_DIR/dist-input/DisputeCopilot-$VERSION.msi")" \
+  -dIcon="$(cygpath -w "$ROOT_DIR/assets/icon.ico")" \
+  -dLogo="$(cygpath -w "$ROOT_DIR/assets/logo-64.png")" \
+  -out "$(cygpath -w "$ROOT_DIR/dist-input/bundle.wixobj")" \
+  "$(cygpath -w "$ROOT_DIR/scripts/bundle.wxs")"
+"$WIX_BIN/light.exe" -nologo -spdb -ext WixBalExtension \
+  -out "$(cygpath -w "$ROOT_DIR/dist/DisputeCopilot-Setup-$VERSION.exe")" \
+  "$(cygpath -w "$ROOT_DIR/dist-input/bundle.wixobj")"
+
+echo "Built: $ROOT_DIR/dist/DisputeCopilot-Setup-$VERSION.exe"
