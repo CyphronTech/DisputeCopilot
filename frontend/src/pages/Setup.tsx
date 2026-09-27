@@ -10,7 +10,7 @@ import type { ModelProvider } from '../api/types'
 
 const TABS = ['Integrations', 'Users & roles', 'Deployment']
 
-const ROLES = ['orders', 'payments', 'fulfillment', 'refunds', 'communications'] as const
+const ROLES = ['orders', 'payments', 'fulfillment', 'refunds', 'returns', 'communications'] as const
 
 const PROVIDER_DEFAULTS: Record<ModelProvider, { label: string; baseUrl: string; model: string }> = {
   anthropic: { label: 'Anthropic (Claude)', baseUrl: 'https://api.anthropic.com', model: 'claude-3-5-haiku-20241022' },

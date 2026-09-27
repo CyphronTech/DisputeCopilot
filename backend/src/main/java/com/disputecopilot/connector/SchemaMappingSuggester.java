@@ -12,9 +12,9 @@ import java.util.NoSuchElementException;
 import org.springframework.stereotype.Service;
 
 /**
- * Suggests which of a merchant's real tables/columns play the five roles this app needs
- * (orders, payments, fulfillment, refunds, communications), and which column in each holds
- * the order identifier. Only ever sees table/column NAMES from schema discovery, never row
+ * Suggests which of a merchant's real tables/columns play the six roles this app needs
+ * (orders, payments, fulfillment, refunds, returns, communications), and which column in each
+ * holds the order identifier. Only ever sees table/column NAMES from schema discovery, never row
  * data. Every suggestion is checked against the real discovered schema before being returned
  * — a hallucinated table or column name is dropped, not surfaced — and the admin still has to
  * review and click Save before any of this is used to read the merchant database.
@@ -22,15 +22,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class SchemaMappingSuggester {
 
-  private static final List<String> ROLES = List.of("orders", "payments", "fulfillment", "refunds", "communications");
+  private static final List<String> ROLES = List.of("orders", "payments", "fulfillment", "refunds", "returns", "communications");
 
   private static final String SYSTEM_PROMPT = """
       You map a merchant's database schema to the fixed roles a dispute-resolution app needs:
-      orders, payments, fulfillment, refunds, communications. For each role, pick the single
-      best-matching table from the list given to you and the column in that table that holds
-      the order identifier (the value used to look up all other tables for the same order).
-      If no table clearly fits a role, omit that role entirely. Never invent a table or column
-      name that isn't in the list you were given.
+      orders, payments, fulfillment, refunds, returns, communications. "refunds" is money
+      actually paid back; "returns" is a separate return/RMA request (received, approved,
+      rejected, pending, etc.) that may or may not have led to a refund yet — map them to
+      different tables if the schema has both, don't conflate them. For each role, pick the
+      single best-matching table from the list given to you and the column in that table that
+      holds the order identifier (the value used to look up all other tables for the same
+      order). If no table clearly fits a role, omit that role entirely. Never invent a table or
+      column name that isn't in the list you were given.
 
       For the "orders" role only, also pick the columns holding the customer's name and email
       if present. For the "refunds" role only, also pick the column holding the refund's status

@@ -33,7 +33,7 @@ import org.springframework.stereotype.Component;
 @EnableConfigurationProperties(ConnectorAllowlistProperties.class)
 public class PostgresMerchantConnector {
 
-  private static final List<String> ROLES = List.of("orders", "payments", "fulfillment", "refunds", "communications");
+  private static final List<String> ROLES = List.of("orders", "payments", "fulfillment", "refunds", "returns", "communications");
 
   private final SchemaDiscoveryService schemaDiscovery;
   private final TableAllowlistStore allowlistStore;
