@@ -44,7 +44,7 @@ public final class SplashScreen {
     Image logo = new ImageIcon(SplashScreen.class.getResource("/branding/logo.png")).getImage();
     icon.setIcon(new ImageIcon(logo.getScaledInstance(64, 64, Image.SCALE_SMOOTH)));
 
-    JLabel text = new JLabel("Starting DisputeCopilot…", SwingConstants.CENTER);
+    JLabel text = new JLabel("Starting Proofly…", SwingConstants.CENTER);
     text.setFont(new Font("SansSerif", Font.PLAIN, 13));
     text.setForeground(new Color(0x56, 0x5c, 0x6b));
     text.setBorder(BorderFactory.createEmptyBorder(0, 0, 32, 0));

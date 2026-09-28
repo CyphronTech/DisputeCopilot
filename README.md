@@ -1,14 +1,14 @@
 <div align="center">
 
-<img src="assets/logo-128.png" width="72" alt="DisputeCopilot logo">
+<img src="assets/logo-128.png" width="72" alt="Proofly logo">
 
-# DisputeCopilot
+# Proofly
 
 **Stop losing "item not received" chargebacks to guesswork.**
 
 Self-hosted. Runs on your machine. Your order data never leaves your business unless you choose to send it to an AI provider.
 
-[Features](#features) · [How it works](#how-it-works) · [Screenshots](#screenshots) · [Install](#install-windows) · [Run from source](#run-from-source) · [Security](#security--privacy) · [📄 Product Overview PDF](docs/DisputeCopilot-Product-Overview.pdf)
+[Features](#features) · [How it works](#how-it-works) · [Screenshots](#screenshots) · [Install](#install-windows) · [Run from source](#run-from-source) · [Security](#security--privacy) · [📄 Product Overview PDF](docs/Proofly-Product-Overview.pdf)
 
 </div>
 
@@ -20,9 +20,9 @@ A customer disputes a chargeback claiming their order never arrived. You have ma
 
 Most merchants either lose disputes they should have won, or spend twenty minutes per case digging through tables by hand.
 
-## What DisputeCopilot does
+## What Proofly does
 
-Type an order ID. DisputeCopilot:
+Type an order ID. Proofly:
 
 1. **Reads your own order database** (or Shopify) — order, payment, fulfillment, refunds, returns, customer messages — through a connector that is **read-only by construction** and restricted to an admin-approved allowlist of tables and columns.
 2. **Retrieves the relevant clause** from your uploaded shipping/refund/terms policies.
@@ -37,7 +37,7 @@ Every recommendation is checked against your own records before it's shown to yo
 - **Plain-English case review** — not a table dump. "Omar ordered a Wireless Charging Pad on Sep 7 and the order shows as delivered by FedEx on Sep 12... you should contest this chargeback."
 - **Policy-grounded citations** — the AI quotes your actual refund policy, not a generic one, and every quote is verified against the document text before being shown.
 - **A safety net that doesn't trust the AI blindly** — if the model recommends contesting an order your own records show was refunded, the app overrides it and routes the case to manual review instead. Same for an unresolved return request.
-- **Works with your real schema** — a setup wizard (with an AI-assisted "suggest a mapping" step) maps DisputeCopilot's generic roles (orders, payments, refunds, returns...) onto whatever your tables and columns are actually called, including customer names that live in a separate `customers` table.
+- **Works with your real schema** — a setup wizard (with an AI-assisted "suggest a mapping" step) maps Proofly's generic roles (orders, payments, refunds, returns...) onto whatever your tables and columns are actually called, including customer names that live in a separate `customers` table.
 - **Read-only, allowlisted, injection-safe connector** — the app can never write to your database, and every table/column name is validated against your live schema before it's used in a query.
 - **Bring your own AI provider** — Anthropic, OpenAI-compatible APIs, or a local model (e.g. Ollama). Your API key is encrypted at rest with a key unique to your install.
 - **Full audit trail** — every login, setup change, and decision is logged for compliance.
@@ -49,7 +49,7 @@ Every recommendation is checked against your own records before it's shown to yo
 
 ```
 ┌─────────────┐     order ID      ┌──────────────────────┐
-│   Merchant  │ ────────────────▶ │   DisputeCopilot      │
+│   Merchant  │ ────────────────▶ │   Proofly             │
 └─────────────┘                   │                       │
                                    │  1. Read-only,        │
                                    │     allowlisted read  │───▶  Your database
@@ -74,7 +74,7 @@ Every recommendation is checked against your own records before it's shown to yo
                                    You approve → downloadable PDF
 ```
 
-The safety net matters: an LLM can be confidently wrong. DisputeCopilot cross-checks the AI's recommendation against facts the connector itself read — has a refund actually been issued? Is there an open return request? — and overrides the AI rather than trusting it when the two disagree.
+The safety net matters: an LLM can be confidently wrong. Proofly cross-checks the AI's recommendation against facts the connector itself read — has a refund actually been issued? Is there an open return request? — and overrides the AI rather than trusting it when the two disagree.
 
 ## Screenshots
 
@@ -141,14 +141,14 @@ The safety net matters: an LLM can be confidently wrong. DisputeCopilot cross-ch
 
 ## Install (Windows)
 
-DisputeCopilot ships as a single installer with an embedded database — nothing else to set up.
+Proofly ships as a single installer with an embedded database — nothing else to set up.
 
-1. Download the latest `DisputeCopilot-Setup-*.exe` from [Releases](../../releases).
+1. Download the latest `Proofly-Setup-*.exe` from [Releases](../../releases).
 2. Run it and accept the Windows admin prompt (needed once, for install/uninstall).
 3. On first launch, create your own admin password — every install gets its own password and its own encryption key, there is no shared default login.
 4. Open **Setup** and connect your database (or Shopify) and an AI provider.
 
-Your data — cases, audit log, and the local database — lives in `%LOCALAPPDATA%\DisputeCopilot`, untouched by future upgrades or uninstalls.
+Your data — cases, audit log, and the local database — lives in `%LOCALAPPDATA%\Proofly`, untouched by future upgrades or uninstalls. Upgrading from a DisputeCopilot install migrates this folder automatically.
 
 ## Run from source
 

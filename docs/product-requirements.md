@@ -2,7 +2,7 @@
 
 ## Product statement
 
-DisputeCopilot helps a D2C merchant turn a product-not-received dispute into a structured, policy-grounded evidence packet without copying order data into a third-party SaaS product.
+Proofly helps a D2C merchant turn a product-not-received dispute into a structured, policy-grounded evidence packet without copying order data into a third-party SaaS product.
 
 The merchant deploys the application in its own environment and provides its own model API credentials. Employees use a browser-based interface; an administrator installs and configures the application once.
 

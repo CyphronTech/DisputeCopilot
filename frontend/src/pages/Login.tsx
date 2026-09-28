@@ -50,7 +50,7 @@ export function Login() {
         <div className="auth-brand">
           <img className="brand-mark" src="/favicon.svg" alt="" />
           <div>
-            <h1 className="auth-title">{creating ? 'Create your password' : 'Sign in to DisputeCopilot'}</h1>
+            <h1 className="auth-title">{creating ? 'Create your password' : 'Sign in to Proofly'}</h1>
             {creating && (
               <p className="auth-sub">First time here — choose the email and password you'll use to sign in.</p>
             )}

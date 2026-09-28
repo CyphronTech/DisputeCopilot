@@ -22,9 +22,9 @@ import javax.swing.JOptionPane;
  */
 public final class DesktopRuntime {
 
-  public static final Path APP_DIR = Path.of(System.getProperty("user.home"), "AppData", "Local", "DisputeCopilot");
-  public static final Path LOG_FILE = APP_DIR.resolve("app.log");
-  private static final Path PORT_FILE = APP_DIR.resolve("running.port");
+  private static final Path NEW_APP_DIR = Path.of(System.getProperty("user.home"), "AppData", "Local", "Proofly");
+  private static final Path OLD_APP_DIR = Path.of(System.getProperty("user.home"), "AppData", "Local", "DisputeCopilot");
+  public static Path APP_DIR = NEW_APP_DIR;
 
   /** Held (never closed) for the life of the process; the OS releases it if we crash. */
   private static FileChannel instanceLock;
@@ -35,11 +35,37 @@ public final class DesktopRuntime {
     return "bundled".equals(System.getProperty("spring.profiles.active"));
   }
 
+  private static Path logFile() {
+    return APP_DIR.resolve("app.log");
+  }
+
+  private static Path portFile() {
+    return APP_DIR.resolve("running.port");
+  }
+
   /**
-   * Returns false if another DisputeCopilot is already running — in which case its page has
+   * One-time move for installs from before the DisputeCopilot -> Proofly rename. A plain rename
+   * can be refused by Windows (a locked file inside, antivirus scanning it, etc.) — if so, this
+   * keeps running out of the old folder rather than crashing or silently starting fresh with an
+   * empty one next to the merchant's real data. The next launch tries the move again.
+   */
+  private static void migrateOldAppDir() {
+    if (Files.exists(OLD_APP_DIR) && !Files.exists(NEW_APP_DIR)) {
+      try {
+        Files.move(OLD_APP_DIR, NEW_APP_DIR);
+      } catch (IOException stillLocked) {
+        APP_DIR = OLD_APP_DIR;
+      }
+    }
+    System.setProperty("app.dir", APP_DIR.toString());
+  }
+
+  /**
+   * Returns false if another Proofly is already running — in which case its page has
    * been opened in the browser and this process should just exit.
    */
   public static boolean claimSingleInstance() throws IOException {
+    migrateOldAppDir();
     Files.createDirectories(APP_DIR);
     FileChannel channel = FileChannel.open(APP_DIR.resolve("instance.lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
     if (channel.tryLock() == null) {
@@ -48,14 +74,14 @@ public final class DesktopRuntime {
       return false;
     }
     instanceLock = channel;
-    Files.deleteIfExists(PORT_FILE);
+    Files.deleteIfExists(portFile());
     return true;
   }
 
   /** Called once the server is up, so a second launch knows where to point the browser. */
   public static void recordRunningPort(String port) {
     try {
-      Files.writeString(PORT_FILE, port, StandardCharsets.UTF_8);
+      Files.writeString(portFile(), port, StandardCharsets.UTF_8);
     } catch (IOException ignored) {
       // Only costs a second launch the "open the running copy" shortcut.
     }
@@ -87,8 +113,8 @@ public final class DesktopRuntime {
   private static void openRunningInstance() {
     for (int i = 0; i < 120; i++) {
       try {
-        if (Files.exists(PORT_FILE)) {
-          BrowserLauncher.openBrowser("http://localhost:" + Files.readString(PORT_FILE, StandardCharsets.UTF_8).strip());
+        if (Files.exists(portFile())) {
+          BrowserLauncher.openBrowser("http://localhost:" + Files.readString(portFile(), StandardCharsets.UTF_8).strip());
           return;
         }
         Thread.sleep(500);
@@ -96,7 +122,7 @@ public final class DesktopRuntime {
         break;
       }
     }
-    showDialog("DisputeCopilot is already running.\n\nLook for its icon in the system tray (bottom-right of the screen), "
+    showDialog("Proofly is already running.\n\nLook for its icon in the system tray (bottom-right of the screen), "
         + "or restart your computer if it seems stuck.", JOptionPane.INFORMATION_MESSAGE);
   }
 
@@ -109,18 +135,18 @@ public final class DesktopRuntime {
       Files.createDirectories(APP_DIR);
       StringWriter trace = new StringWriter();
       failure.printStackTrace(new PrintWriter(trace));
-      Files.writeString(LOG_FILE, Instant.now() + " DisputeCopilot failed to start:\n" + trace + "\n",
+      Files.writeString(logFile(), Instant.now() + " Proofly failed to start:\n" + trace + "\n",
           StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     } catch (IOException ignored) {
       // The dialog below still tells the user something went wrong.
     }
-    showDialog("DisputeCopilot couldn't start.\n\nTry restarting your computer and opening it again. "
-        + "If it keeps happening, send this file to support:\n" + LOG_FILE, JOptionPane.ERROR_MESSAGE);
+    showDialog("Proofly couldn't start.\n\nTry restarting your computer and opening it again. "
+        + "If it keeps happening, send this file to support:\n" + logFile(), JOptionPane.ERROR_MESSAGE);
   }
 
   private static void showDialog(String message, int type) {
     try {
-      JDialog dialog = new JOptionPane(message, type).createDialog("DisputeCopilot");
+      JDialog dialog = new JOptionPane(message, type).createDialog("Proofly");
       dialog.setAlwaysOnTop(true); // no main window of ours to sit in front of
       dialog.setVisible(true);
       dialog.dispose();

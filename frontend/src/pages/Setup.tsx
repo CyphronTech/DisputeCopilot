@@ -371,7 +371,7 @@ export function Setup() {
               <h2>Connect your store</h2>
             </div>
             <p className="desc">
-              Tell DisputeCopilot where your orders live so it can look them up. Access is read-only — it can never change,
+              Tell Proofly where your orders live so it can look them up. Access is read-only — it can never change,
               delete or add anything in your store. Until you connect, investigations use built-in sample data.
             </p>
             <div className="row">
@@ -689,7 +689,7 @@ function BackupSection() {
     setStatus(null)
     try {
       await restoreBackup(file)
-      setStatus({ ok: true, text: 'Restored. Close and reopen DisputeCopilot now for the restored settings to take full effect.' })
+      setStatus({ ok: true, text: 'Restored. Close and reopen Proofly now for the restored settings to take full effect.' })
     } catch (err) {
       setStatus({ ok: false, text: err instanceof Error ? err.message : String(err) })
     } finally {
@@ -706,7 +706,7 @@ function BackupSection() {
         <h2>Back up and restore</h2>
       </div>
       <p className="desc">
-        Everything DisputeCopilot knows — cases, policies, and setup — lives only on this computer. If this PC is lost,
+        Everything Proofly knows — cases, policies, and setup — lives only on this computer. If this PC is lost,
         so is that data, unless you've downloaded a backup. Nothing from your store's own database is included.
       </p>
 
@@ -778,7 +778,7 @@ function ChangePasswordSection() {
         </div>
         <h2>Change password</h2>
       </div>
-      <p className="desc">This is the password you use to sign in to DisputeCopilot on this computer.</p>
+      <p className="desc">This is the password you use to sign in to Proofly on this computer.</p>
       <div className="row">
         <label htmlFor="pw-current">Current password</label>
         <input id="pw-current" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} />

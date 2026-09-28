@@ -33,7 +33,7 @@ export function Layout() {
         <div className="brand-row">
           <img className="brand-mark" src="/favicon.svg" alt="" />
           <div className="brand-text">
-            <div className="brand-name">DisputeCopilot</div>
+            <div className="brand-name">Proofly</div>
             <div className="brand-sub">Dispute evidence assistant</div>
           </div>
         </div>

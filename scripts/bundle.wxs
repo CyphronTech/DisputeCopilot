@@ -8,7 +8,7 @@
 -->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
      xmlns:bal="http://schemas.microsoft.com/wix/BalExtension">
-  <Bundle Name="DisputeCopilot" Version="$(var.Version)" Manufacturer="DisputeCopilot"
+  <Bundle Name="Proofly" Version="$(var.Version)" Manufacturer="CyphronTech"
           UpgradeCode="$(var.UpgradeCode)" IconSourceFile="$(var.Icon)">
     <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.HyperlinkLicense">
       <bal:WixStandardBootstrapperApplication LicenseUrl="" SuppressOptionsUI="yes" LogoFile="$(var.Logo)" />

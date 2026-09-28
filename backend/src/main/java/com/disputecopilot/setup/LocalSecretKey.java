@@ -25,7 +25,7 @@ public final class LocalSecretKey {
     // An explicitly supplied key wins — an operator managing their own key should keep it.
     if (System.getenv("SECRET_KEY") != null) return;
     try {
-      Path keyFile = Path.of(System.getProperty("user.home"), "AppData", "Local", "DisputeCopilot", "secret.key");
+      Path keyFile = DesktopRuntime.APP_DIR.resolve("secret.key");
       if (!Files.exists(keyFile)) {
         Files.createDirectories(keyFile.getParent());
         byte[] random = new byte[32];

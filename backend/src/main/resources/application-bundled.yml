@@ -2,7 +2,7 @@
 # only place a startup failure is recorded.
 logging:
   file:
-    name: ${user.home}/AppData/Local/DisputeCopilot/app.log
+    name: ${app.dir:${user.home}/AppData/Local/Proofly}/app.log
 
 server:
   # The desktop build is for the person sitting at this machine. Without this it binds every

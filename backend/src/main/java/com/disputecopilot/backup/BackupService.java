@@ -146,8 +146,7 @@ public class BackupService {
     audit.record("Backup restored", "all data was replaced from an uploaded backup — restart the app to finish", null, "Admin", false, "alert", "warn");
   }
 
-  /** Same path LocalSecretKey computes — duplicated rather than shared, it's one line and the two classes have no other reason to depend on each other. */
   private Path secretKeyPath() {
-    return Path.of(System.getProperty("user.home"), "AppData", "Local", "DisputeCopilot", "secret.key");
+    return com.disputecopilot.setup.DesktopRuntime.APP_DIR.resolve("secret.key");
   }
 }

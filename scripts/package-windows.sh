@@ -33,13 +33,13 @@ export PATH="$PATH:$WIX_BIN"
   --type msi \
   --input "$(cygpath -w "$ROOT_DIR/dist-input")" \
   --main-jar "disputecopilot-backend-$VERSION-SNAPSHOT.jar" \
-  --name DisputeCopilot \
+  --name Proofly \
   --app-version "$VERSION" \
-  --vendor "DisputeCopilot" \
+  --vendor "CyphronTech" \
   --dest "$(cygpath -w "$ROOT_DIR/dist-input")" \
   --win-shortcut \
   --win-menu \
-  --win-menu-group "DisputeCopilot" \
+  --win-menu-group "Proofly" \
   --win-upgrade-uuid "$UPGRADE_UUID" \
   --icon "$(cygpath -w "$ROOT_DIR/assets/icon.ico")" \
   --java-options "-Dspring.profiles.active=bundled" \
@@ -55,13 +55,13 @@ export PATH="$PATH:$WIX_BIN"
 "$WIX_BIN/candle.exe" -nologo -ext WixBalExtension \
   -dVersion="$VERSION" \
   -dUpgradeCode="$BUNDLE_UPGRADE_UUID" \
-  -dMsi="$(cygpath -w "$ROOT_DIR/dist-input/DisputeCopilot-$VERSION.msi")" \
+  -dMsi="$(cygpath -w "$ROOT_DIR/dist-input/Proofly-$VERSION.msi")" \
   -dIcon="$(cygpath -w "$ROOT_DIR/assets/icon.ico")" \
   -dLogo="$(cygpath -w "$ROOT_DIR/assets/logo-64.png")" \
   -out "$(cygpath -w "$ROOT_DIR/dist-input/bundle.wixobj")" \
   "$(cygpath -w "$ROOT_DIR/scripts/bundle.wxs")"
 "$WIX_BIN/light.exe" -nologo -spdb -ext WixBalExtension \
-  -out "$(cygpath -w "$ROOT_DIR/dist/DisputeCopilot-Setup-$VERSION.exe")" \
+  -out "$(cygpath -w "$ROOT_DIR/dist/Proofly-Setup-$VERSION.exe")" \
   "$(cygpath -w "$ROOT_DIR/dist-input/bundle.wixobj")"
 
-echo "Built: $ROOT_DIR/dist/DisputeCopilot-Setup-$VERSION.exe"
+echo "Built: $ROOT_DIR/dist/Proofly-Setup-$VERSION.exe"
