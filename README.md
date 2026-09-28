@@ -42,6 +42,7 @@ Every recommendation is checked against your own records before it's shown to yo
 - **Bring your own AI provider** — Anthropic, OpenAI-compatible APIs, or a local model (e.g. Ollama). Your API key is encrypted at rest with a key unique to your install.
 - **Full audit trail** — every login, setup change, and decision is logged for compliance.
 - **One-click PDF export** of the approved report, ready to attach to your payment processor's dispute response.
+- **Backup and restore** — download every case, policy, and setting as a single zip from Setup, and restore it (to the same machine or a fresh one) just as easily. All data otherwise lives only on this computer.
 - **Ships as a single Windows installer** — no Docker, no separate database to install. See [Install](#install-windows).
 
 ## How it works
@@ -202,7 +203,7 @@ See [docs/security-and-privacy.md](docs/security-and-privacy.md) for the full de
 
 ## License
 
-No license file is included yet — until one is added, all rights are reserved by the author.
+Proprietary — all rights reserved by CyphronTech. See [LICENSE](LICENSE). This repository is shared for viewing and evaluation only; it is not open source.
 
 ---
 

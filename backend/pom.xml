@@ -13,7 +13,7 @@
 
   <groupId>com.disputecopilot</groupId>
   <artifactId>disputecopilot-backend</artifactId>
-  <version>0.2.3-SNAPSHOT</version>
+  <version>0.3.0-SNAPSHOT</version>
   <name>disputecopilot-backend</name>
 
   <properties>
@@ -53,7 +53,8 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <scope>runtime</scope>
+      <!-- Compile scope (not the default runtime-only): BackupService uses the driver's own
+           CopyManager directly to move data in/out via Postgres's COPY protocol. -->
     </dependency>
     <dependency>
       <groupId>org.apache.pdfbox</groupId>

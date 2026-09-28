@@ -64,6 +64,13 @@ export async function changePassword(currentPassword: string, newPassword: strin
   })
 }
 
+/** Uploads a previously downloaded backup zip; replaces all app data. Requires a restart afterward. */
+export async function restoreBackup(file: File): Promise<void> {
+  const form = new FormData()
+  form.append('file', file)
+  await request('/api/v1/setup/backup/restore', { method: 'POST', body: form })
+}
+
 export async function logout(): Promise<void> {
   await fetch('/api/v1/session', { method: 'DELETE' }).catch(() => null)
 }

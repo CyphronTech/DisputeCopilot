@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   changePassword, discoverSchema, getAllowlist, getConnectorConfig, getModelConfig, getShopifyConfig, getTableRoleMapping,
-  saveAllowlist, saveConnectorConfig, saveModelConfig, saveShopifyConfig, saveTableRoleMapping, suggestTableMapping,
+  restoreBackup, saveAllowlist, saveConnectorConfig, saveModelConfig, saveShopifyConfig, saveTableRoleMapping, suggestTableMapping,
   testConnectorConfig, testModelConfig, testShopifyConfig,
 } from '../api/client'
 import type { RoleMapping } from '../api/client'
@@ -10,7 +10,7 @@ import { ErrorBanner, messageOf } from '../components/ErrorBanner'
 import { formatDateTime } from '../lib/format'
 import type { ModelProvider } from '../api/types'
 
-const TABS = ['Integrations', 'Password']
+const TABS = ['Integrations', 'Password', 'Backup']
 
 const ROLES = ['orders', 'payments', 'fulfillment', 'refunds', 'returns', 'communications', 'customers'] as const
 const ROLE_LABEL: Record<(typeof ROLES)[number], string> = {
@@ -668,7 +668,79 @@ export function Setup() {
       {tab === 'Password' && (
         <ChangePasswordSection />
       )}
+
+      {tab === 'Backup' && (
+        <BackupSection />
+      )}
     </>
+  )
+}
+
+function BackupSection() {
+  const [restoring, setRestoring] = useState(false)
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null)
+
+  async function handleRestoreFile(file: File | undefined) {
+    if (!file) return
+    if (!window.confirm(
+      'Restore this backup? Every case, policy, and setting currently in the app will be replaced with what\'s in this file. This can\'t be undone.'
+    )) return
+    setRestoring(true)
+    setStatus(null)
+    try {
+      await restoreBackup(file)
+      setStatus({ ok: true, text: 'Restored. Close and reopen DisputeCopilot now for the restored settings to take full effect.' })
+    } catch (err) {
+      setStatus({ ok: false, text: err instanceof Error ? err.message : String(err) })
+    } finally {
+      setRestoring(false)
+    }
+  }
+
+  return (
+    <div className="card section">
+      <div className="section-head">
+        <div className="section-icon">
+          <Icon name="db" />
+        </div>
+        <h2>Back up and restore</h2>
+      </div>
+      <p className="desc">
+        Everything DisputeCopilot knows — cases, policies, and setup — lives only on this computer. If this PC is lost,
+        so is that data, unless you've downloaded a backup. Nothing from your store's own database is included.
+      </p>
+
+      <div className="row">
+        <label>Download a backup</label>
+        <a className="btn btn-outline" href="/api/v1/setup/backup" download>
+          <Icon name="upload" />
+          Download backup (.zip)
+        </a>
+      </div>
+
+      <div className="row">
+        <label htmlFor="restore-file">Restore from a backup</label>
+        <input
+          id="restore-file"
+          type="file"
+          accept=".zip"
+          disabled={restoring}
+          onChange={(e) => {
+            handleRestoreFile(e.target.files?.[0])
+            e.target.value = ''
+          }}
+        />
+      </div>
+
+      {status && (
+        <div className="row-actions">
+          <div className="status" role={status.ok ? 'status' : 'alert'} style={status.ok ? undefined : { color: 'var(--error)' }}>
+            <span className="dot" style={status.ok ? undefined : { background: 'var(--error)' }} />
+            {status.text}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
